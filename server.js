@@ -1,4 +1,4 @@
-// server.js - Com suporte a Pop-up (funcional!)
+// server.js - Versão com pop-up corrigido
 const express = require('express');
 const session = require('express-session');
 const fetch = require('node-fetch');
@@ -14,7 +14,7 @@ const baseUrl = isProduction
 
 const config = {
     clientId: 'cartola-web@apps.globoid',
-    redirectUri: 'https://cartola.globo.com/login-callback.html', // FIXO
+    redirectUri: 'https://cartola.globo.com/login-callback.html',
     authUrl: 'https://goidc.globo.com/auth/realms/globo.com/protocol/openid-connect/auth',
     tokenUrl: 'https://goidc.globo.com/auth/realms/globo.com/protocol/openid-connect/token',
     cartolaApi: 'https://api.cartola.globo.com'
@@ -34,13 +34,13 @@ function generatePKCE() {
     return { verifier, challenge };
 }
 
-// ============ PÁGINA PRINCIPAL COM POP-UP ============
+// ============ PÁGINA PRINCIPAL ============
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Cartola Token Manager - Login Popup</title>
+            <title>Cartola Token Manager</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -101,6 +101,7 @@ app.get('/', (req, res) => {
                 }
                 .success { color: #28a745; }
                 .error { color: #dc3545; }
+                .note { margin-top: 20px; padding: 10px; background: #e3f2fd; border-radius: 8px; font-size: 12px; color: #1565c0; }
                 .footer { margin-top: 30px; font-size: 12px; color: #999; }
             </style>
         </head>
@@ -119,89 +120,121 @@ app.get('/', (req, res) => {
                 </div>
                 
                 <div id="result"></div>
+                
+                <div class="note">
+                    💡 <strong>Dica:</strong> Se o pop-up não abrir, verifique se seu navegador não está bloqueando pop-ups.
+                </div>
+                
                 <div class="footer">🔒 O pop-up fecha automaticamente após o login</div>
             </div>
             
             <script>
                 let popup = null;
+                let interval = null;
                 
                 document.getElementById('loginBtn').onclick = async () => {
                     // Mostra loading
                     document.getElementById('loading').style.display = 'block';
                     document.getElementById('result').innerHTML = '';
+                    document.getElementById('loginBtn').disabled = true;
                     
-                    // Obtém a URL de login do servidor
-                    const response = await fetch('/auth/login-url');
-                    const data = await response.json();
-                    
-                    // Abre pop-up
-                    const width = 500;
-                    const height = 600;
-                    const left = (screen.width - width) / 2;
-                    const top = (screen.height - height) / 2;
-                    
-                    popup = window.open(data.url, 'cartola_login', 
-                        \`width=\${width},height=\${height},left=\${left},top=\${top},toolbar=no,location=yes\`);
-                    
-                    // Monitora o pop-up (check a cada 500ms)
-                    const interval = setInterval(async () => {
-                        if (!popup || popup.closed) {
-                            clearInterval(interval);
+                    try {
+                        // Obtém a URL de login do servidor
+                        const response = await fetch('/auth/login-url');
+                        const data = await response.json();
+                        
+                        console.log('URL de login:', data.url);
+                        
+                        // Abre pop-up com parâmetros corretos
+                        const width = 500;
+                        const height = 650;
+                        const left = (screen.width - width) / 2;
+                        const top = (screen.height - height) / 2;
+                        
+                        // Tenta abrir pop-up
+                        popup = window.open(data.url, 'cartola_login', 
+                            \`width=\${width},height=\${height},left=\${left},top=\${top},toolbar=no,location=yes,menubar=no,status=no\`);
+                        
+                        if (!popup) {
+                            // Pop-up bloqueado
                             document.getElementById('loading').style.display = 'none';
+                            document.getElementById('result').innerHTML = \`
+                                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 10px; color: #856404;">
+                                    ⚠️ Pop-up bloqueado! <br><br>
+                                    <strong>Clique no ícone de pop-up na barra de endereço e permita.</strong><br><br>
+                                    <a href="\${data.url}" target="_blank" style="color: #4CAF50;">👉 Clique aqui se o pop-up não abrir 👈</a>
+                                </div>
+                            \`;
+                            document.getElementById('loginBtn').disabled = false;
                             return;
                         }
                         
-                        try {
-                            // Tenta ler a URL do pop-up
-                            const popupUrl = popup.location.href;
+                        // Monitora o pop-up
+                        interval = setInterval(async () => {
+                            if (!popup || popup.closed) {
+                                clearInterval(interval);
+                                document.getElementById('loading').style.display = 'none';
+                                document.getElementById('loginBtn').disabled = false;
+                                return;
+                            }
                             
-                            // Se a URL contém o código de autorização
-                            if (popupUrl.includes('login-callback.html?code=')) {
-                                // Extrai o código
-                                const match = popupUrl.match(/[?&]code=([^&]+)/);
-                                if (match) {
-                                    const code = decodeURIComponent(match[1]);
-                                    const stateMatch = popupUrl.match(/[?&]state=([^&]+)/);
-                                    const state = stateMatch ? decodeURIComponent(stateMatch[1]) : '';
-                                    
-                                    // Fecha o pop-up
-                                    popup.close();
-                                    clearInterval(interval);
-                                    
-                                    document.getElementById('loading').innerHTML = '<p>🔄 Obtendo token...</p>';
-                                    
-                                    // Troca o código por token
-                                    const tokenResponse = await fetch('/auth/exchange', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ code, state })
-                                    });
-                                    
-                                    const result = await tokenResponse.json();
-                                    
-                                    if (result.success) {
-                                        document.getElementById('result').innerHTML = \`
-                                            <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 10px;">
-                                                ✅ <strong>Login realizado com sucesso!</strong><br>
-                                                Redirecionando para o dashboard...
-                                            </div>
-                                        \`;
-                                        setTimeout(() => window.location.href = '/dashboard', 1500);
-                                    } else {
-                                        document.getElementById('result').innerHTML = \`
-                                            <div style="margin-top: 20px; padding: 15px; background: #f8d7da; border-radius: 10px; color: #721c24;">
-                                                ❌ Erro: \${result.error}
-                                            </div>
-                                        \`;
-                                        document.getElementById('loading').style.display = 'none';
+                            try {
+                                const popupUrl = popup.location.href;
+                                
+                                if (popupUrl && popupUrl.includes('login-callback.html?code=')) {
+                                    const match = popupUrl.match(/[?&]code=([^&]+)/);
+                                    if (match) {
+                                        const code = decodeURIComponent(match[1]);
+                                        const stateMatch = popupUrl.match(/[?&]state=([^&]+)/);
+                                        const state = stateMatch ? decodeURIComponent(stateMatch[1]) : '';
+                                        
+                                        clearInterval(interval);
+                                        popup.close();
+                                        
+                                        document.getElementById('loading').innerHTML = '<p>🔄 Obtendo token...</p>';
+                                        
+                                        const tokenResponse = await fetch('/auth/exchange', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ code, state })
+                                        });
+                                        
+                                        const result = await tokenResponse.json();
+                                        
+                                        if (result.success) {
+                                            document.getElementById('result').innerHTML = \`
+                                                <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 10px;">
+                                                    ✅ <strong>Login realizado com sucesso!</strong><br>
+                                                    Redirecionando...
+                                                </div>
+                                            \`;
+                                            setTimeout(() => window.location.href = '/dashboard', 1500);
+                                        } else {
+                                            document.getElementById('result').innerHTML = \`
+                                                <div style="margin-top: 20px; padding: 15px; background: #f8d7da; border-radius: 10px; color: #721c24;">
+                                                    ❌ Erro: \${result.error}
+                                                </div>
+                                            \`;
+                                            document.getElementById('loading').style.display = 'none';
+                                            document.getElementById('loginBtn').disabled = false;
+                                        }
                                     }
                                 }
+                            } catch(e) {
+                                // Erro de cross-origin é normal, ignora
                             }
-                        } catch(e) {
-                            // Erro de cross-origin é normal enquanto o pop-up está em outro domínio
-                            // Só ignorar
-                        }
-                    }, 500);
+                        }, 500);
+                        
+                    } catch (error) {
+                        console.error('Erro:', error);
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('loginBtn').disabled = false;
+                        document.getElementById('result').innerHTML = \`
+                            <div style="margin-top: 20px; padding: 15px; background: #f8d7da; border-radius: 10px;">
+                                ❌ Erro ao iniciar login: \${error.message}
+                            </div>
+                        \`;
+                    }
                 };
             </script>
         </body>
@@ -271,39 +304,7 @@ app.post('/auth/exchange', async (req, res) => {
     }
 });
 
-// Renovar token
-app.post('/auth/refresh', async (req, res) => {
-    if (!req.session.refreshToken) {
-        return res.status(401).json({ error: 'No refresh token' });
-    }
-    
-    const params = new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: config.clientId,
-        refresh_token: req.session.refreshToken
-    });
-    
-    try {
-        const response = await fetch(config.tokenUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        
-        const tokens = await response.json();
-        
-        req.session.accessToken = tokens.access_token;
-        req.session.refreshToken = tokens.refresh_token;
-        req.session.tokenExpiry = Date.now() + (tokens.expires_in * 1000);
-        
-        res.json({ success: true });
-        
-    } catch (error) {
-        res.status(500).json({ error: 'Refresh failed' });
-    }
-});
-
-// Dashboard (igual antes)
+// Dashboard
 app.get('/dashboard', (req, res) => {
     if (!req.session.accessToken) {
         return res.redirect('/');
@@ -366,13 +367,15 @@ app.get('/dashboard', (req, res) => {
                     pre.innerHTML = JSON.stringify(data, null, 2);
                 }
                 async function loadStats() {
-                    const response = await fetch('/api/cartola/auth/time/info');
-                    const data = await response.json();
-                    if (data.time) {
-                        document.getElementById('timeName').innerHTML = data.time.nome;
-                        document.getElementById('patrimonio').innerHTML = \`C\$ \${data.patrimonio}\`;
-                        document.getElementById('pontos').innerHTML = data.pontos;
-                    }
+                    try {
+                        const response = await fetch('/api/cartola/auth/time/info');
+                        const data = await response.json();
+                        if (data.time) {
+                            document.getElementById('timeName').innerHTML = data.time.nome;
+                            document.getElementById('patrimonio').innerHTML = \`C\$ \${data.patrimonio}\`;
+                            document.getElementById('pontos').innerHTML = data.pontos;
+                        }
+                    } catch(e) { console.error(e); }
                 }
                 async function logout() {
                     await fetch('/auth/logout');

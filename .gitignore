@@ -1,0 +1,26 @@
+# Dependências
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.production
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Configuração local
+config.local.js

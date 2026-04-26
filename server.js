@@ -1,12 +1,12 @@
-// server.js - Versão com Proxy para contornar bloqueio de iframe
+// server.js - Versão sem httpproxy (funcional!)
 const express = require('express');
 const session = require('express-session');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
-const { proxy } = require('httpproxy'); // Não precisa instalar, vamos fazer manual
 
 const app = express();
 
+// Configuração
 const isProduction = process.env.NODE_ENV === 'production';
 const baseUrl = isProduction 
     ? process.env.RENDER_EXTERNAL_URL || 'https://seu-app.onrender.com'
@@ -34,41 +34,8 @@ function generatePKCE() {
     return { verifier, challenge };
 }
 
-// ============ PROXY PARA O IFRAME (contorna bloqueio) ============
-app.get('/proxy/*', async (req, res) => {
-    const targetUrl = req.params[0];
-    console.log('Proxy request for:', targetUrl);
-    
-    try {
-        // Busca o conteúdo da URL alvo
-        const response = await fetch(decodeURIComponent(targetUrl), {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        });
-        
-        let content = await response.text();
-        
-        // Modifica o conteúdo para substituir URLs relativas
-        const baseUrlProxy = `${baseUrl}/proxy/`;
-        content = content.replace(/href="\//g, `href="${baseUrlProxy}`);
-        content = content.replace(/src="\//g, `src="${baseUrlProxy}`);
-        content = content.replace(/action="\//g, `action="${baseUrlProxy}`);
-        
-        // Remove headers que bloqueiam iframe
-        res.removeHeader('X-Frame-Options');
-        res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
-        res.send(content);
-        
-    } catch (error) {
-        console.error('Proxy error:', error);
-        res.status(500).send('Proxy error');
-    }
-});
-
 // ============ PÁGINA PRINCIPAL ============
 app.get('/', (req, res) => {
-    // Gera state e PKCE
     const state = crypto.randomBytes(16).toString('hex');
     const { verifier, challenge } = generatePKCE();
     
@@ -87,9 +54,6 @@ app.get('/', (req, res) => {
     
     const loginUrl = `${config.authUrl}?${params.toString()}`;
     
-    // Usa o proxy para o iframe
-    const proxyLoginUrl = `/proxy/${encodeURIComponent(loginUrl)}`;
-    
     res.send(`
         <!DOCTYPE html>
         <html>
@@ -104,38 +68,45 @@ app.get('/', (req, res) => {
                     min-height: 100vh;
                     padding: 20px;
                 }
-                .container { max-width: 650px; margin: 0 auto; }
+                .container { max-width: 500px; margin: 0 auto; }
                 .card {
                     background: white;
                     border-radius: 20px;
-                    padding: 25px;
+                    padding: 30px;
                     margin-bottom: 20px;
                     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
                 }
                 .logo { font-size: 48px; text-align: center; }
                 h1 { text-align: center; color: #333; font-size: 22px; margin: 10px 0; }
                 .subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 13px; }
-                .iframe-wrapper {
-                    background: #f0f0f0;
+                .url-box {
+                    background: #f8f9fa;
                     border-radius: 12px;
-                    padding: 5px;
-                    overflow: hidden;
+                    padding: 15px;
+                    margin: 15px 0;
                 }
-                iframe {
+                input {
                     width: 100%;
-                    height: 550px;
-                    border: none;
-                    border-radius: 8px;
-                }
-                .info {
-                    background: #e3f2fd;
                     padding: 12px;
+                    margin: 10px 0;
+                    border: 1px solid #ddd;
                     border-radius: 8px;
-                    margin-top: 15px;
-                    font-size: 13px;
-                    color: #1565c0;
-                    text-align: center;
+                    font-family: monospace;
+                    font-size: 11px;
                 }
+                button {
+                    background: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    width: 100%;
+                    font-size: 16px;
+                }
+                button:hover { background: #45a049; }
+                .btn-secondary { background: #6c757d; margin-top: 10px; }
+                .btn-secondary:hover { background: #5a6268; }
                 .status {
                     margin-top: 15px;
                     padding: 12px;
@@ -146,19 +117,15 @@ app.get('/', (req, res) => {
                 .status-success { background: #d4edda; color: #155724; display: block; }
                 .status-error { background: #f8d7da; color: #721c24; display: block; }
                 .status-loading { background: #fff3cd; color: #856404; display: block; }
-                button {
-                    background: #6c757d;
-                    color: white;
-                    border: none;
-                    padding: 10px 20px;
+                .info {
+                    background: #e3f2fd;
+                    padding: 12px;
                     border-radius: 8px;
-                    cursor: pointer;
-                    width: 100%;
-                    margin-top: 10px;
+                    margin: 15px 0;
+                    font-size: 12px;
+                    color: #1565c0;
+                    text-align: center;
                 }
-                button:hover { background: #5a6268; }
-                .dashboard-link { text-align: center; margin-top: 15px; }
-                .dashboard-link a { color: #4CAF50; text-decoration: none; }
                 .footer { text-align: center; margin-top: 20px; font-size: 11px; color: rgba(255,255,255,0.7); }
             </style>
         </head>
@@ -167,22 +134,22 @@ app.get('/', (req, res) => {
                 <div class="card">
                     <div class="logo">🏆</div>
                     <h1>Cartola Token Manager</h1>
-                    <div class="subtitle">Faça login na sua conta Globo.com</div>
-                    
-                    <div class="iframe-wrapper">
-                        <iframe id="loginFrame" src="${proxyLoginUrl}"></iframe>
-                    </div>
+                    <div class="subtitle">Obtenha seu token de acesso</div>
                     
                     <div class="info">
-                        🔐 Faça login no iframe acima. Após autenticar, você será redirecionado automaticamente.
+                        🔐 Clique no botão abaixo para fazer login na Globo.com
+                    </div>
+                    
+                    <button id="loginBtn">🔑 Fazer login</button>
+                    
+                    <div class="url-box" id="urlBox" style="display: none;">
+                        <p><strong>📋 Passo 2: Cole a URL</strong></p>
+                        <p style="font-size: 12px;">Após o login, cole a URL da página de callback:</p>
+                        <input type="text" id="callbackUrl" placeholder="https://cartola.globo.com/login-callback.html?code=..." />
+                        <button id="exchangeBtn">🔄 Obter token</button>
                     </div>
                     
                     <div id="status" class="status"></div>
-                    <button id="manualBtn">🔄 Verificar login manualmente</button>
-                    
-                    <div class="dashboard-link" id="dashboardLink" style="display: none;">
-                        <a href="/dashboard">→ Ir para o Dashboard ←</a>
-                    </div>
                 </div>
                 <div class="footer">
                     🔒 Seus dados são seguros. O token é armazenado apenas durante sua sessão.
@@ -190,8 +157,7 @@ app.get('/', (req, res) => {
             </div>
             
             <script>
-                let checkInterval = null;
-                let isProcessing = false;
+                let loginWindow = null;
                 
                 function showStatus(message, type) {
                     const statusDiv = document.getElementById('status');
@@ -199,56 +165,92 @@ app.get('/', (req, res) => {
                     statusDiv.className = 'status status-' + type;
                 }
                 
-                function hideStatus() {
-                    const statusDiv = document.getElementById('status');
-                    statusDiv.className = 'status';
-                }
-                
-                async function checkAuth() {
-                    if (isProcessing) return;
+                document.getElementById('loginBtn').onclick = async () => {
+                    showStatus('🔄 Gerando link de login...', 'loading');
                     
-                    try {
-                        const response = await fetch('/api/auth/status');
-                        const data = await response.json();
-                        
-                        if (data.authenticated && data.tokenValid) {
-                            isProcessing = true;
-                            showStatus('✅ Login detectado! Redirecionando...', 'success');
-                            setTimeout(() => {
-                                window.location.href = '/dashboard';
-                            }, 1000);
-                        }
-                    } catch(e) {
-                        console.log('Verificando...');
-                    }
-                }
-                
-                document.getElementById('manualBtn').onclick = async () => {
-                    showStatus('🔍 Verificando autenticação...', 'loading');
-                    await checkAuth();
-                    if (!isProcessing) {
-                        showStatus('⚠️ Ainda não detectado. Complete o login no iframe.', 'error');
-                        setTimeout(() => hideStatus(), 3000);
+                    const response = await fetch('/auth/login-url');
+                    const data = await response.json();
+                    
+                    // Abre em nova aba/janela
+                    loginWindow = window.open(data.url, '_blank');
+                    
+                    if (!loginWindow) {
+                        showStatus('⚠️ Pop-up bloqueado! Abra manualmente: ' + data.url, 'error');
+                    } else {
+                        showStatus('✅ Janela de login aberta! Faça login e depois cole a URL abaixo.', 'success');
+                        document.getElementById('urlBox').style.display = 'block';
                     }
                 };
                 
-                // Verifica a cada 2 segundos
-                checkInterval = setInterval(checkAuth, 2000);
-                
-                window.addEventListener('beforeunload', () => {
-                    if (checkInterval) clearInterval(checkInterval);
-                });
+                document.getElementById('exchangeBtn').onclick = async () => {
+                    const url = document.getElementById('callbackUrl').value;
+                    
+                    if (!url) {
+                        showStatus('❌ Por favor, cole a URL da página de callback', 'error');
+                        return;
+                    }
+                    
+                    const codeMatch = url.match(/[?&]code=([^&]+)/);
+                    const stateMatch = url.match(/[?&]state=([^&]+)/);
+                    
+                    if (!codeMatch) {
+                        showStatus('❌ URL inválida. Não foi possível encontrar o código.', 'error');
+                        return;
+                    }
+                    
+                    const code = decodeURIComponent(codeMatch[1]);
+                    const state = stateMatch ? decodeURIComponent(stateMatch[1]) : '';
+                    
+                    showStatus('🔄 Obtendo token...', 'loading');
+                    
+                    const response = await fetch('/auth/exchange', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, state })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showStatus('✅ Token obtido com sucesso! Redirecionando...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/dashboard';
+                        }, 1500);
+                    } else {
+                        showStatus('❌ Erro: ' + result.error, 'error');
+                    }
+                };
             </script>
         </body>
         </html>
     `);
 });
 
-// Rota para trocar código por token
+// Rota para gerar URL de login
+app.get('/auth/login-url', (req, res) => {
+    const state = crypto.randomBytes(16).toString('hex');
+    const { verifier, challenge } = generatePKCE();
+    
+    req.session.oauthState = state;
+    req.session.codeVerifier = verifier;
+    
+    const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: config.clientId,
+        redirect_uri: config.redirectUri,
+        scope: 'openid profile glbid birthdate',
+        state: state,
+        code_challenge: challenge,
+        code_challenge_method: 'S256'
+    });
+    
+    const authUrl = `${config.authUrl}?${params.toString()}`;
+    res.json({ url: authUrl });
+});
+
+// Trocar código por token
 app.post('/auth/exchange', async (req, res) => {
     const { code, state } = req.body;
-    
-    console.log('Exchange request:', { code: code?.substring(0, 50), state });
     
     if (state !== req.session.oauthState) {
         return res.status(400).json({ error: 'Estado inválido' });
@@ -286,13 +288,7 @@ app.post('/auth/exchange', async (req, res) => {
     }
 });
 
-// Rota para receber callback (via fetch do iframe)
-app.post('/api/callback', (req, res) => {
-    const { code, state } = req.body;
-    res.json({ received: true });
-});
-
-// Dashboard (igual antes)
+// Dashboard
 app.get('/dashboard', (req, res) => {
     if (!req.session.accessToken) {
         return res.redirect('/');
@@ -318,8 +314,6 @@ app.get('/dashboard', (req, res) => {
                 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
                 .stat-card { background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; }
                 .stat-value { font-size: 28px; font-weight: bold; color: #667eea; }
-                .token-status { padding: 12px; border-radius: 8px; margin-bottom: 20px; }
-                .token-valid { background: #d4edda; color: #155724; }
             </style>
         </head>
         <body>
@@ -331,7 +325,6 @@ app.get('/dashboard', (req, res) => {
             </div>
             <div class="container">
                 <div class="card">
-                    <div id="tokenStatus" class="token-status token-valid">✅ Token válido</div>
                     <h2>📊 Seu Time</h2>
                     <div class="stats" id="stats">
                         <div class="stat-card"><div class="stat-value" id="timeName">-</div><div>Time</div></div>
@@ -344,7 +337,6 @@ app.get('/dashboard', (req, res) => {
                     <button onclick="callApi('auth/time/info')">Meu Time</button>
                     <button onclick="callApi('atletas/mercado')">Atletas</button>
                     <button onclick="callApi('partidas')">Partidas</button>
-                    <button onclick="callApi('mercado/status')">Status Mercado</button>
                     <pre id="response">Clique em um botão</pre>
                 </div>
             </div>
@@ -379,9 +371,7 @@ app.get('/dashboard', (req, res) => {
 
 // Renovar token
 app.post('/auth/refresh', async (req, res) => {
-    if (!req.session.refreshToken) {
-        return res.status(401).json({ error: 'No refresh token' });
-    }
+    if (!req.session.refreshToken) return res.status(401).json({ error: 'No refresh token' });
     
     const params = new URLSearchParams({
         grant_type: 'refresh_token',
@@ -395,15 +385,12 @@ app.post('/auth/refresh', async (req, res) => {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: params.toString()
         });
-        
         const tokens = await response.json();
         
         req.session.accessToken = tokens.access_token;
         req.session.refreshToken = tokens.refresh_token;
         req.session.tokenExpiry = Date.now() + (tokens.expires_in * 1000);
-        
         res.json({ success: true });
-        
     } catch (error) {
         res.status(500).json({ error: 'Refresh failed' });
     }
@@ -424,9 +411,7 @@ app.get('/api/auth/status', (req, res) => {
 
 // API: Proxy para Cartola
 app.get('/api/cartola/:endpoint(*)', async (req, res) => {
-    if (!req.session.accessToken) {
-        return res.status(401).json({ error: 'Not authenticated' });
-    }
+    if (!req.session.accessToken) return res.status(401).json({ error: 'Not authenticated' });
     
     const endpoint = req.params.endpoint;
     const url = `${config.cartolaApi}/${endpoint}`;
@@ -434,7 +419,7 @@ app.get('/api/cartola/:endpoint(*)', async (req, res) => {
     const needsAuth = !publicEndpoints.includes(endpoint);
     
     const headers = {
-        'Authorization': `Bearer ${req.session.accessToken}`,
+        'Authorization': needsAuth ? `Bearer ${req.session.accessToken}` : undefined,
         'X-GLB-Auth': 'oidc',
         'X-GLB-APP': 'cartola_web',
         'User-Agent': 'Mozilla/5.0'

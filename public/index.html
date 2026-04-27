@@ -1,215 +1,201 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartola IA - Insights de Escalação</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #222;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartola IA — insights inteligentes</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏆%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {
+    darkMode: 'class',
+    theme: {
+        extend: {
+            colors: {
+                bg:        '#0a0e0f',
+                surface:   '#11181a',
+                surface2:  '#161f22',
+                border:    '#22302f',
+                fg:        '#e8f1ee',
+                muted:     '#7b8a87',
+                primary:   '#fee03b',
+                secondary: '#5cf2a3',
+                danger:    '#ff6166',
+                warning:   '#ffb049',
+            },
+            boxShadow: {
+                glow: '0 0 0 1px rgba(254,224,59,.4), 0 8px 30px -8px rgba(254,224,59,.35)',
+                card: '0 1px 0 rgba(255,255,255,.04), 0 12px 40px -16px rgba(0,0,0,.7)'
+            },
+            backgroundImage: {
+                pitch:    'radial-gradient(ellipse at top, rgba(80,255,170,.06), transparent 50%), linear-gradient(180deg, #0a0e0f, #050708)',
+                cta:      'linear-gradient(135deg, #fee03b 0%, #ffb049 100%)',
+                cap:      'linear-gradient(135deg, rgba(254,224,59,.18), rgba(255,176,73,.05))',
+                lux:      'linear-gradient(135deg, rgba(92,242,163,.18), rgba(92,242,163,.04))'
+            }
         }
-        .wrap { max-width: 980px; margin: 0 auto; }
-        .hero {
-            background: white; border-radius: 20px; padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25); margin-bottom: 25px;
-            text-align: center;
-        }
-        .hero h1 { font-size: 28px; margin-bottom: 8px; }
-        .hero p { color: #555; margin-bottom: 18px; }
-        .hero .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .btn {
-            background: #4CAF50; color: white; border: none;
-            padding: 12px 22px; border-radius: 50px; font-size: 15px;
-            cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
-        }
-        .btn:hover { filter: brightness(1.05); }
-        .btn-secondary { background: #667eea; }
-        .btn-ghost { background: transparent; color: #667eea; border: 1px solid #667eea; }
-        .card {
-            background: white; border-radius: 16px; padding: 25px;
-            margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        .card h2 { margin-bottom: 8px; font-size: 20px; }
-        .card .hint { color: #666; font-size: 13px; margin-bottom: 18px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-        label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; font-weight: 600; }
-        input, select {
-            width: 100%; padding: 10px; border: 1px solid #ddd;
-            border-radius: 8px; font-size: 14px; background: white;
-        }
-        .meta-row { display: flex; gap: 15px; flex-wrap: wrap; font-size: 13px; color: #555; margin-top: 8px; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-        .badge-rodada { background: #e3f2fd; color: #1565c0; }
-        .badge-mercado-1 { background: #e8f5e9; color: #2e7d32; }
-        .badge-mercado-2 { background: #ffebee; color: #c62828; }
-        .lineup { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 15px; }
-        .player {
-            background: #f7f8fa; padding: 12px; border-radius: 10px; border-left: 4px solid #667eea;
-            font-size: 13px;
-        }
-        .player.captain { border-left-color: #f57c00; background: #fff8e1; }
-        .player .pos { font-weight: 700; color: #667eea; font-size: 11px; letter-spacing: 1px; }
-        .player .name { font-weight: 600; font-size: 15px; margin: 3px 0; }
-        .player .clube { color: #888; font-size: 12px; }
-        .player .stats { display: flex; gap: 10px; margin-top: 6px; font-size: 12px; color: #444; }
-        .player .reason { margin-top: 6px; color: #555; font-size: 12px; font-style: italic; }
-        .totals {
-            display: flex; justify-content: space-around; flex-wrap: wrap;
-            background: #f7f8fa; padding: 15px; border-radius: 10px; margin-top: 15px;
-        }
-        .totals div { text-align: center; }
-        .totals .val { font-size: 22px; font-weight: bold; color: #667eea; }
-        .totals .lbl { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-        .reasoning {
-            background: #f0f4ff; padding: 15px; border-radius: 10px;
-            margin-top: 15px; font-size: 14px; line-height: 1.5;
-        }
-        .loading { text-align: center; padding: 30px; color: #666; }
-        .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 10px; margin-top: 15px; }
-        .footer { text-align: center; color: white; opacity: 0.85; font-size: 12px; margin-top: 20px; }
-        .footer a { color: white; }
-    </style>
+    }
+};
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+    html, body { background: #0a0e0f; color: #e8f1ee; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scroll-thin::-webkit-scrollbar-thumb { background: #22302f; border-radius: 3px; }
+    .badge { @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide; }
+    .chip { @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface2 px-2 py-0.5 text-xs; }
+    .prose-chat p { margin: .35em 0; }
+    .prose-chat table { border-collapse: collapse; margin: .5em 0; }
+    .prose-chat th, .prose-chat td { border: 1px solid #22302f; padding: 4px 8px; font-size: 12px; }
+    .prose-chat code { background: #161f22; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+    .prose-chat ul, .prose-chat ol { margin: .35em 0 .35em 1.2em; }
+    .prose-chat strong { color: #fee03b; }
+    .player-photo { background: #161f22 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%237b8a87" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>') center/60% no-repeat; }
+    .skel { background: linear-gradient(90deg, #11181a, #1a2528, #11181a); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
+    @keyframes skel { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    .typing-dot { animation: blink 1.2s infinite both; }
+    .typing-dot:nth-child(2) { animation-delay: .15s; }
+    .typing-dot:nth-child(3) { animation-delay: .3s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+</style>
 </head>
-<body>
-    <div class="wrap">
-        <div class="hero">
-            <div style="font-size: 56px;">🏆</div>
-            <h1>Cartola IA</h1>
-            <p>Sugestões de escalação geradas a partir dos dados ao vivo do Cartola FC</p>
-            <div class="actions">
-                <a href="#insights" class="btn">🧠 Gerar escalação</a>
-                <a href="/auth/login" class="btn btn-secondary">🔑 Login Globo.com (opcional)</a>
+<body class="bg-pitch min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 h-16">
+        <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-cta shadow-glow">
+                <i data-lucide="trophy" class="h-5 w-5 text-bg"></i>
             </div>
-            <p id="mercadoInfo" class="meta-row" style="justify-content:center; margin-top:14px;"></p>
+            <div class="leading-tight">
+                <div class="font-bold">Cartola IA</div>
+                <div class="text-[10px] uppercase tracking-widest text-muted">insights inteligentes</div>
+            </div>
+        </div>
+        <nav class="flex items-center gap-1" id="tabs">
+            <button data-tab="mercado"   class="tab-btn px-3 py-2 rounded-md text-sm flex items-center gap-2"><i data-lucide="bar-chart-3" class="h-4 w-4"></i><span class="hidden sm:inline">Mercado</span></button>
+            <button data-tab="comparar"  class="tab-btn px-3 py-2 rounded-md text-sm flex items-center gap-2"><i data-lucide="users"        class="h-4 w-4"></i><span class="hidden sm:inline">Comparar</span></button>
+            <button data-tab="escalacao" class="tab-btn px-3 py-2 rounded-md text-sm flex items-center gap-2"><i data-lucide="sparkles"     class="h-4 w-4"></i><span class="hidden sm:inline">Escalação IA</span></button>
+        </nav>
+        <button id="usageBtn" class="hidden sm:flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-xs hover:bg-surface2">
+            <i data-lucide="gauge" class="h-3.5 w-3.5 text-secondary"></i>
+            <span id="usageMini" class="text-muted">IA: —</span>
+        </button>
+    </div>
+</header>
+
+<!-- MERCADO STATUS BAR (sempre visível) -->
+<div class="mx-auto max-w-7xl px-4 mt-4">
+    <div id="statusBar" class="rounded-xl border border-border bg-surface p-4 shadow-card flex flex-wrap items-center gap-3 text-sm">
+        <div class="skel h-4 w-40 rounded"></div>
+    </div>
+</div>
+
+<main class="mx-auto max-w-7xl px-4 py-6 space-y-6">
+
+    <!-- TAB: Mercado -->
+    <section data-view="mercado" class="grid gap-4 lg:grid-cols-[1fr_minmax(380px,440px)]">
+        <div class="space-y-4">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Mercado da rodada</h1>
+                    <p class="text-sm text-muted">Dados ao vivo da API pública do Cartola FC. Atualizado a cada minuto.</p>
+                </div>
+                <button onclick="switchTab('escalacao')" class="bg-cta text-bg font-semibold rounded-md px-4 py-2 text-sm shadow-glow flex items-center gap-2">
+                    <i data-lucide="sparkles" class="h-4 w-4"></i>
+                    Gerar escalação ótima
+                </button>
+            </div>
+            <div id="mercadoTable"></div>
+        </div>
+        <aside class="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
+            <div id="chatPanel" class="h-full"></div>
+        </aside>
+    </section>
+
+    <!-- TAB: Comparar -->
+    <section data-view="comparar" class="hidden grid gap-4 lg:grid-cols-[1fr_minmax(380px,440px)]">
+        <div class="space-y-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">Comparador de jogadores</h1>
+                <p class="text-sm text-muted">Selecione até 4 jogadores e peça uma análise da IA.</p>
+            </div>
+            <div id="compareSelected"></div>
+            <div id="compareTable"></div>
+        </div>
+        <aside class="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
+            <div id="chatPanelCompare" class="h-full"></div>
+        </aside>
+    </section>
+
+    <!-- TAB: Escalação IA -->
+    <section data-view="escalacao" class="hidden space-y-6">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight">Escalação ótima por IA</h1>
+            <p class="text-sm text-muted">A IA monta seu time considerando preço, média, status, scouts, adversário, mando e histórico.</p>
         </div>
 
-        <div class="card" id="insights">
-            <h2>🧠 Sugestão de Escalação</h2>
-            <p class="hint">Tudo é calculado com dados públicos: mercado, parciais, partidas e clubes — não precisa estar logado.</p>
-
-            <div class="grid">
-                <div>
-                    <label>Cartoletas (C$)</label>
-                    <input id="inCartoletas" type="number" min="50" max="200" step="0.5" value="100" />
-                </div>
-                <div>
-                    <label>Esquema</label>
-                    <select id="inEsquema">
-                        <option>4-3-3</option>
-                        <option>4-4-2</option>
-                        <option>3-5-2</option>
-                        <option>3-4-3</option>
-                        <option>5-3-2</option>
-                        <option>5-4-1</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Estilo</label>
-                    <select id="inEstilo">
-                        <option value="equilibrado">Equilibrado</option>
-                        <option value="agressivo">Agressivo</option>
-                        <option value="valorização">Valorização</option>
-                    </select>
-                </div>
-                <div style="display:flex; align-items:flex-end;">
-                    <button id="btnGerar" class="btn" style="width:100%;">🚀 Gerar com IA</button>
-                </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 rounded-xl border border-border bg-surface p-5 shadow-card">
+            <div class="space-y-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-muted">Cartoletas (C$)</label>
+                <input id="inCartoletas" type="number" min="40" max="500" step="0.5" value="120"
+                       class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm focus:border-primary focus:outline-none">
             </div>
-
-            <div id="result"></div>
+            <div class="space-y-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-muted">Esquema</label>
+                <select id="inEsquema" class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm focus:border-primary focus:outline-none">
+                    <option>3-4-3</option><option>3-5-2</option><option selected>4-3-3</option>
+                    <option>4-4-2</option><option>4-5-1</option><option>5-3-2</option><option>5-4-1</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-muted">Preferência</label>
+                <select id="inPreferencia" class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm focus:border-primary focus:outline-none">
+                    <option value="pontos">📈 Pontos (máx pontuação)</option>
+                    <option value="equilibrado" selected>⚖️ Equilibrado</option>
+                    <option value="valorizacao">💰 Valorização</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-3">
+                <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                    <input id="inEvitarDuvidas" type="checkbox" checked class="rounded border-border bg-surface accent-primary">
+                    Evitar dúvidas
+                </label>
+                <button id="btnGerar" class="ml-auto bg-cta text-bg font-semibold rounded-md px-4 py-2 text-sm shadow-glow flex items-center gap-2">
+                    <i data-lucide="sparkles" class="h-4 w-4"></i>
+                    Gerar com IA
+                </button>
+            </div>
         </div>
 
-        <div class="footer">
-            Dados em tempo real via <code>api.cartola.globo.com</code> ·
-            <a href="/api/catalog">ver catálogo de endpoints</a>
+        <div id="lineupResult"></div>
+    </section>
+
+</main>
+
+<!-- USAGE MODAL -->
+<div id="usageModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this)closeUsage()">
+    <div class="bg-surface border border-border rounded-xl shadow-card max-w-md w-full p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="gauge" class="h-5 w-5 text-secondary"></i> Uso da IA nesta sessão</h3>
+            <button onclick="closeUsage()" class="text-muted hover:text-fg"><i data-lucide="x" class="h-4 w-4"></i></button>
+        </div>
+        <div id="usageBody" class="space-y-3 text-sm"></div>
+        <div class="text-xs text-muted border-t border-border pt-3">
+            Provedor: <span class="text-fg font-medium" id="usageProvider">—</span><br>
+            <span id="usageNote"></span>
         </div>
     </div>
+</div>
 
-    <script>
-    async function loadStatus() {
-        try {
-            const r = await fetch('/api/cartola/mercado/status');
-            const d = await r.json();
-            const open = d.status_mercado === 1;
-            document.getElementById('mercadoInfo').innerHTML =
-                `<span class="badge badge-rodada">Rodada ${d.rodada_atual}</span>` +
-                `<span class="badge badge-mercado-${d.status_mercado}">${open ? 'Mercado aberto' : 'Mercado fechado'}</span>`;
-        } catch (e) {
-            console.error(e);
-        }
-    }
+<footer class="mx-auto max-w-7xl px-4 py-8 text-center text-xs text-muted">
+    Dados em tempo real via <code class="text-fg/80">api.cartola.globo.com</code> · IA <span class="text-secondary font-medium">gpt-5.4</span> via Replit AI · Sem login, somente endpoints públicos
+</footer>
 
-    async function gerar() {
-        const cartoletas = document.getElementById('inCartoletas').value;
-        const esquema = document.getElementById('inEsquema').value;
-        const estilo = document.getElementById('inEstilo').value;
-        const result = document.getElementById('result');
-        const btn = document.getElementById('btnGerar');
-
-        btn.disabled = true;
-        btn.textContent = '⏳ Gerando...';
-        result.innerHTML = '<div class="loading">🤖 A IA está analisando o mercado, parciais e partidas... pode levar até 30s</div>';
-
-        try {
-            const url = `/api/insights/lineup?cartoletas=${encodeURIComponent(cartoletas)}&esquema=${encodeURIComponent(esquema)}&estilo=${encodeURIComponent(estilo)}`;
-            const r = await fetch(url);
-            const data = await r.json();
-
-            if (!r.ok || data.error) {
-                result.innerHTML = `<div class="error">❌ Erro: ${data.error || r.status}</div>`;
-                return;
-            }
-
-            renderLineup(data);
-        } catch (e) {
-            result.innerHTML = `<div class="error">❌ ${e.message}</div>`;
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '🚀 Gerar com IA';
-        }
-    }
-
-    function renderLineup({ meta, sugestao }) {
-        const result = document.getElementById('result');
-        if (!sugestao || !sugestao.escalacao) {
-            result.innerHTML = `<div class="error">A IA não retornou uma escalação válida. Resposta bruta:<pre>${JSON.stringify(sugestao, null, 2)}</pre></div>`;
-            return;
-        }
-        const cap = sugestao.capitao_id;
-        const players = sugestao.escalacao.map(p => `
-            <div class="player ${p.id === cap ? 'captain' : ''}">
-                <div class="pos">${p.posicao}${p.id === cap ? ' · 🅒 CAPITÃO' : ''}</div>
-                <div class="name">${p.apelido}</div>
-                <div class="clube">${p.clube}</div>
-                <div class="stats">
-                    <span>💰 C$ ${p.preco?.toFixed?.(2) ?? p.preco}</span>
-                    <span>⚡ Méd ${p.media?.toFixed?.(2) ?? p.media}</span>
-                </div>
-                ${p.motivo ? `<div class="reason">"${p.motivo}"</div>` : ''}
-            </div>
-        `).join('');
-
-        const mediaSoma = sugestao.escalacao.reduce((s, p) => s + (Number(p.media) || 0), 0);
-
-        result.innerHTML = `
-            <div class="totals">
-                <div><div class="val">R${meta.rodada}</div><div class="lbl">Rodada</div></div>
-                <div><div class="val">${sugestao.esquema}</div><div class="lbl">Esquema</div></div>
-                <div><div class="val">C$ ${sugestao.custo_total?.toFixed?.(2) ?? sugestao.custo_total}</div><div class="lbl">Custo total</div></div>
-                <div><div class="val">${mediaSoma.toFixed(2)}</div><div class="lbl">Soma das médias</div></div>
-            </div>
-            <div class="lineup">${players}</div>
-            ${sugestao.raciocinio ? `<div class="reasoning"><strong>💡 Estratégia:</strong> ${sugestao.raciocinio}</div>` : ''}
-        `;
-    }
-
-    document.getElementById('btnGerar').addEventListener('click', gerar);
-    loadStatus();
-    </script>
+<script src="/js/app.js"></script>
 </body>
 </html>

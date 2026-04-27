@@ -1,4 +1,4 @@
-// server.js - Navegador embutido no site
+// server.js - Com rota /auth/login corrigida
 const express = require('express');
 const session = require('express-session');
 const fetch = require('node-fetch');
@@ -34,8 +34,8 @@ function generatePKCE() {
     return { verifier, challenge };
 }
 
-// ============ PÁGINA PRINCIPAL COM NAVEGADOR EMBUTIDO ============
-app.get('/', (req, res) => {
+// ============ ROTA DE LOGIN (CORRIGIDA) ============
+app.get('/auth/login', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     const { verifier, challenge } = generatePKCE();
     
@@ -53,375 +53,87 @@ app.get('/', (req, res) => {
     });
     
     const loginUrl = `${config.authUrl}?${params.toString()}`;
-    
+    res.redirect(loginUrl);
+});
+
+// ============ PÁGINA PRINCIPAL ============
+app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Cartola Token Manager - Navegador Interno</title>
+            <title>Cartola Token Manager</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    background: #1a1a2e;
-                    height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                }
-                
-                /* Cabeçalho do site */
-                .site-header {
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 15px 20px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                }
-                .logo { font-size: 20px; font-weight: bold; }
-                .token-status {
-                    background: rgba(255,255,255,0.2);
-                    padding: 5px 12px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                }
-                
-                /* Barra de ferramentas do navegador */
-                .browser-toolbar {
-                    background: #2d2d3a;
-                    padding: 10px 15px;
-                    display: flex;
-                    gap: 10px;
-                    align-items: center;
-                    flex-wrap: wrap;
-                    border-bottom: 1px solid #3d3d4a;
-                }
-                .nav-buttons {
-                    display: flex;
-                    gap: 5px;
-                }
-                .nav-btn {
-                    background: #3d3d4a;
-                    border: none;
-                    color: white;
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 18px;
+                    min-height: 100vh;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    transition: all 0.2s;
+                    padding: 20px;
                 }
-                .nav-btn:hover { background: #4d4d5a; }
-                .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-                .url-bar {
-                    flex: 1;
-                    display: flex;
-                    gap: 10px;
-                    align-items: center;
-                    background: #1a1a2e;
-                    border-radius: 30px;
-                    padding: 5px 15px;
-                }
-                .url-input {
-                    flex: 1;
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    font-size: 14px;
-                    padding: 8px 0;
-                    outline: none;
-                }
-                .go-btn {
-                    background: #4CAF50;
-                    border: none;
-                    color: white;
-                    width: 70px;
-                    padding: 6px 12px;
-                    border-radius: 20px;
-                    cursor: pointer;
-                    font-size: 13px;
-                }
-                .go-btn:hover { background: #45a049; }
-                
-                /* Área do navegador (iframe) */
-                .browser-container {
-                    flex: 1;
-                    position: relative;
+                .container {
                     background: white;
-                }
-                .browser-frame {
+                    border-radius: 20px;
+                    padding: 40px;
+                    max-width: 500px;
                     width: 100%;
-                    height: 100%;
-                    border: none;
+                    text-align: center;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
                 }
-                .loading-overlay {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0,0,0,0.5);
-                    display: none;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 4px solid #f3f3f3;
-                    border-top: 4px solid #4CAF50;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-                
-                /* Painel de token */
-                .token-panel {
-                    background: #2d2d3a;
-                    padding: 15px 20px;
-                    border-top: 1px solid #3d3d4a;
-                    display: none;
-                }
-                .token-panel.show { display: block; }
-                .token-title {
-                    color: #aaa;
-                    font-size: 12px;
-                    margin-bottom: 8px;
-                }
-                .token-value {
-                    background: #1a1a2e;
-                    color: #4CAF50;
-                    padding: 12px;
-                    border-radius: 8px;
-                    font-family: monospace;
-                    font-size: 12px;
-                    word-break: break-all;
-                    margin-bottom: 10px;
-                }
-                .dashboard-link {
-                    background: #2196F3;
+                .logo { font-size: 64px; margin-bottom: 20px; }
+                h1 { color: #333; margin-bottom: 10px; }
+                p { color: #666; margin-bottom: 30px; }
+                .btn-login {
+                    background: #4CAF50;
                     color: white;
                     border: none;
-                    padding: 10px 20px;
-                    border-radius: 8px;
+                    padding: 15px 30px;
+                    border-radius: 50px;
+                    font-size: 18px;
                     cursor: pointer;
-                    width: 100%;
-                    font-size: 14px;
+                    text-decoration: none;
+                    display: inline-block;
                 }
-                
-                @media (max-width: 768px) {
-                    .browser-toolbar { flex-direction: column; }
-                    .url-bar { width: 100%; }
+                .btn-login:hover { background: #45a049; transform: translateY(-2px); }
+                .info {
+                    margin-top: 30px;
+                    padding: 15px;
+                    background: #e3f2fd;
+                    border-radius: 10px;
+                    font-size: 13px;
+                    color: #1565c0;
                 }
+                .footer { margin-top: 30px; font-size: 12px; color: #999; }
             </style>
         </head>
         <body>
-            <div class="site-header">
-                <div class="logo">🏆 Cartola Token Manager</div>
-                <div class="token-status" id="tokenStatus">🔐 Aguardando login</div>
-            </div>
-            
-            <div class="browser-toolbar">
-                <div class="nav-buttons">
-                    <button class="nav-btn" id="backBtn" title="Voltar">◀</button>
-                    <button class="nav-btn" id="forwardBtn" title="Avançar">▶</button>
-                    <button class="nav-btn" id="refreshBtn" title="Atualizar">🔄</button>
+            <div class="container">
+                <div class="logo">🏆</div>
+                <h1>Cartola Token Manager</h1>
+                <p>Clique no botão abaixo para fazer login</p>
+                <a href="/auth/login" class="btn-login">🔑 Entrar com Globo.com</a>
+                <div class="info">
+                    🔐 Você será redirecionado para o login da Globo.com
                 </div>
-                <div class="url-bar">
-                    <input type="text" class="url-input" id="urlInput" placeholder="Digite uma URL ou faça login..." />
-                    <button class="go-btn" id="goBtn">Ir</button>
+                <div class="footer">
+                    Após o login, você será redirecionado de volta e seu token será obtido automaticamente.
                 </div>
             </div>
-            
-            <div class="browser-container">
-                <iframe class="browser-frame" id="browserFrame" src="${loginUrl}"></iframe>
-                <div class="loading-overlay" id="loadingOverlay">
-                    <div class="spinner"></div>
-                </div>
-            </div>
-            
-            <div class="token-panel" id="tokenPanel">
-                <div class="token-title">✅ Token obtido com sucesso!</div>
-                <div class="token-value" id="tokenValue"></div>
-                <button class="dashboard-link" id="dashboardBtn">📊 Ir para o Dashboard</button>
-            </div>
-            
-            <script>
-                const iframe = document.getElementById('browserFrame');
-                const urlInput = document.getElementById('urlInput');
-                const backBtn = document.getElementById('backBtn');
-                const forwardBtn = document.getElementById('forwardBtn');
-                const refreshBtn = document.getElementById('refreshBtn');
-                const goBtn = document.getElementById('goBtn');
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                const tokenPanel = document.getElementById('tokenPanel');
-                const tokenValue = document.getElementById('tokenValue');
-                const tokenStatus = document.getElementById('tokenStatus');
-                
-                let historyStack = [];
-                let historyIndex = -1;
-                let isProcessing = false;
-                
-                // Mostrar loading
-                function showLoading(show) {
-                    loadingOverlay.style.display = show ? 'flex' : 'none';
-                }
-                
-                // Atualizar URL na barra
-                function updateUrlBar() {
-                    try {
-                        const frameUrl = iframe.contentWindow.location.href;
-                        urlInput.value = frameUrl;
-                        
-                        // Verificar se é a página de callback
-                        if (frameUrl.includes('login-callback.html?code=') && !isProcessing) {
-                            isProcessing = true;
-                            const codeMatch = frameUrl.match(/[?&]code=([^&]+)/);
-                            if (codeMatch) {
-                                const code = decodeURIComponent(codeMatch[1]);
-                                const stateMatch = frameUrl.match(/[?&]state=([^&]+)/);
-                                const state = stateMatch ? decodeURIComponent(stateMatch[1]) : '';
-                                
-                                tokenStatus.innerHTML = '🔄 Obtendo token...';
-                                tokenStatus.style.background = 'rgba(255,193,7,0.3)';
-                                
-                                fetch('/auth/exchange', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ code, state })
-                                })
-                                .then(response => response.json())
-                                .then(result => {
-                                    if (result.success) {
-                                        tokenStatus.innerHTML = '✅ Token obtido com sucesso!';
-                                        tokenStatus.style.background = 'rgba(76,175,80,0.3)';
-                                        tokenValue.innerHTML = result.token || 'Token armazenado na sessão';
-                                        tokenPanel.classList.add('show');
-                                    } else {
-                                        tokenStatus.innerHTML = '❌ Erro: ' + result.error;
-                                        tokenStatus.style.background = 'rgba(244,67,54,0.3)';
-                                        isProcessing = false;
-                                    }
-                                })
-                                .catch(error => {
-                                    tokenStatus.innerHTML = '❌ Erro: ' + error.message;
-                                    isProcessing = false;
-                                });
-                            }
-                        }
-                    } catch(e) {
-                        // Erro de cross-origin é normal
-                        console.log('Aguardando carregamento...');
-                    }
-                    showLoading(false);
-                }
-                
-                // Adicionar ao histórico
-                function addToHistory(url) {
-                    if (historyIndex < historyStack.length - 1) {
-                        historyStack = historyStack.slice(0, historyIndex + 1);
-                    }
-                    historyStack.push(url);
-                    historyIndex = historyStack.length - 1;
-                    updateNavButtons();
-                }
-                
-                function updateNavButtons() {
-                    backBtn.disabled = historyIndex <= 0;
-                    forwardBtn.disabled = historyIndex >= historyStack.length - 1;
-                }
-                
-                // Navegar para URL
-                function navigateTo(url) {
-                    if (!url) return;
-                    if (!url.startsWith('http')) {
-                        url = 'https://' + url;
-                    }
-                    iframe.src = url;
-                    addToHistory(url);
-                    urlInput.value = url;
-                    showLoading(true);
-                }
-                
-                // Eventos do iframe
-                iframe.addEventListener('load', () => {
-                    setTimeout(updateUrlBar, 500);
-                    showLoading(false);
-                });
-                
-                iframe.addEventListener('error', () => {
-                    showLoading(false);
-                });
-                
-                // Eventos dos botões
-                backBtn.onclick = () => {
-                    if (historyIndex > 0) {
-                        historyIndex--;
-                        iframe.src = historyStack[historyIndex];
-                        urlInput.value = historyStack[historyIndex];
-                        showLoading(true);
-                        updateNavButtons();
-                    }
-                };
-                
-                forwardBtn.onclick = () => {
-                    if (historyIndex < historyStack.length - 1) {
-                        historyIndex++;
-                        iframe.src = historyStack[historyIndex];
-                        urlInput.value = historyStack[historyIndex];
-                        showLoading(true);
-                        updateNavButtons();
-                    }
-                };
-                
-                refreshBtn.onclick = () => {
-                    iframe.src = iframe.src;
-                    showLoading(true);
-                };
-                
-                goBtn.onclick = () => {
-                    navigateTo(urlInput.value);
-                };
-                
-                urlInput.onkeypress = (e) => {
-                    if (e.key === 'Enter') navigateTo(urlInput.value);
-                };
-                
-                document.getElementById('dashboardBtn').onclick = () => {
-                    window.location.href = '/dashboard';
-                };
-                
-                // Monitorar mudanças de URL periodicamente
-                setInterval(updateUrlBar, 1000);
-                
-                // Adicionar URL inicial ao histórico
-                historyStack.push('${loginUrl}');
-                historyIndex = 0;
-                updateNavButtons();
-            </script>
         </body>
         </html>
     `);
 });
 
-// Rota para trocar código por token
-app.post('/auth/exchange', async (req, res) => {
-    const { code, state } = req.body;
-    
-    console.log('Exchange request:', { code: code?.substring(0, 50), state });
+// Rota de callback (onde o usuário é redirecionado após login)
+app.get('/callback', async (req, res) => {
+    const { code, state } = req.query;
     
     if (!code) {
-        return res.status(400).json({ error: 'Código não encontrado' });
+        return res.status(400).send('Código não encontrado');
     }
     
     const codeVerifier = req.session.codeVerifier || '';
@@ -435,36 +147,26 @@ app.post('/auth/exchange', async (req, res) => {
     });
     
     try {
-        let response = await fetch(config.tokenUrl, {
+        const response = await fetch(config.tokenUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: params.toString()
         });
         
-        let tokens = await response.json();
-        
-        if (tokens.error && codeVerifier) {
-            params.delete('code_verifier');
-            response = await fetch(config.tokenUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString()
-            });
-            tokens = await response.json();
-        }
+        const tokens = await response.json();
         
         if (tokens.error) {
-            return res.status(400).json({ error: tokens.error_description || tokens.error });
+            return res.status(400).send('Erro: ' + tokens.error_description);
         }
         
         req.session.accessToken = tokens.access_token;
         req.session.refreshToken = tokens.refresh_token;
         req.session.tokenExpiry = Date.now() + (tokens.expires_in * 1000);
         
-        res.json({ success: true, token: tokens.access_token?.substring(0, 50) + '...' });
+        res.redirect('/dashboard');
         
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).send('Erro ao obter token: ' + error.message);
     }
 });
 
@@ -544,55 +246,18 @@ app.get('/dashboard', (req, res) => {
                     window.location.href = '/';
                 }
                 loadStats();
+                setInterval(loadStats, 30000);
             </script>
         </body>
         </html>
     `);
 });
 
-// Renovar token
-app.post('/auth/refresh', async (req, res) => {
-    if (!req.session.refreshToken) return res.status(401).json({ error: 'No refresh token' });
-    
-    const params = new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: config.clientId,
-        refresh_token: req.session.refreshToken
-    });
-    
-    try {
-        const response = await fetch(config.tokenUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        const tokens = await response.json();
-        
-        req.session.accessToken = tokens.access_token;
-        req.session.refreshToken = tokens.refresh_token;
-        req.session.tokenExpiry = Date.now() + (tokens.expires_in * 1000);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: 'Refresh failed' });
-    }
-});
-
-// Logout
-app.get('/auth/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
-
-// API: Status
-app.get('/api/auth/status', (req, res) => {
-    const isAuthenticated = !!req.session.accessToken;
-    const isValid = isAuthenticated && Date.now() < req.session.tokenExpiry;
-    res.json({ authenticated: isAuthenticated, tokenValid: isValid });
-});
-
 // API: Proxy para Cartola
 app.get('/api/cartola/:endpoint(*)', async (req, res) => {
-    if (!req.session.accessToken) return res.status(401).json({ error: 'Not authenticated' });
+    if (!req.session.accessToken) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
     
     const endpoint = req.params.endpoint;
     const url = `${config.cartolaApi}/${endpoint}`;
@@ -617,9 +282,10 @@ app.get('/api/cartola/:endpoint(*)', async (req, res) => {
     }
 });
 
-// Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+// Logout
+app.get('/auth/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
 });
 
 const PORT = process.env.PORT || 3000;

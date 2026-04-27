@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cartola IA — insights inteligentes</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏆%3C/text%3E%3C/svg%3E">
+<title>Cartola IA — Pro Edition</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⚽%3C/text%3E%3C/svg%3E">
 <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
 <script>
 tailwind.config = {
@@ -12,26 +12,24 @@ tailwind.config = {
     theme: {
         extend: {
             colors: {
-                bg:        '#0a0e0f',
-                surface:   '#11181a',
-                surface2:  '#161f22',
-                border:    '#22302f',
-                fg:        '#e8f1ee',
-                muted:     '#7b8a87',
-                primary:   '#fee03b',
-                secondary: '#5cf2a3',
-                danger:    '#ff6166',
-                warning:   '#ffb049',
+                bg:        '#000000',
+                surface:   '#0a0a0a',
+                surface2:  '#141414',
+                border:    '#1f1f1f',
+                fg:        '#ffffff',
+                muted:     '#a0a0a0',
+                primary:   '#0066ff', // Azul solicitado
+                secondary: '#ffffff', // Branco solicitado
+                danger:    '#ff3b30',
+                warning:   '#ffcc00',
             },
             boxShadow: {
-                glow: '0 0 0 1px rgba(254,224,59,.4), 0 8px 30px -8px rgba(254,224,59,.35)',
-                card: '0 1px 0 rgba(255,255,255,.04), 0 12px 40px -16px rgba(0,0,0,.7)'
+                glow: '0 0 15px -3px rgba(0,102,255,0.4)',
+                card: '0 4px 20px -5px rgba(0,0,0,0.5)'
             },
             backgroundImage: {
-                pitch:    'radial-gradient(ellipse at top, rgba(80,255,170,.06), transparent 50%), linear-gradient(180deg, #0a0e0f, #050708)',
-                cta:      'linear-gradient(135deg, #fee03b 0%, #ffb049 100%)',
-                cap:      'linear-gradient(135deg, rgba(254,224,59,.18), rgba(255,176,73,.05))',
-                lux:      'linear-gradient(135deg, rgba(92,242,163,.18), rgba(92,242,163,.04))'
+                pitch:    'radial-gradient(circle at center, #001a33 0%, #000000 100%)',
+                field:    'linear-gradient(to bottom, #004d00 0%, #003300 100%)'
             }
         }
     }
@@ -41,159 +39,146 @@ tailwind.config = {
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-    html, body { background: #0a0e0f; color: #e8f1ee; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-    .scroll-thin::-webkit-scrollbar-thumb { background: #22302f; border-radius: 3px; }
-    .badge { @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide; }
-    .chip { @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface2 px-2 py-0.5 text-xs; }
-    .prose-chat p { margin: .35em 0; }
-    .prose-chat table { border-collapse: collapse; margin: .5em 0; }
-    .prose-chat th, .prose-chat td { border: 1px solid #22302f; padding: 4px 8px; font-size: 12px; }
-    .prose-chat code { background: #161f22; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
-    .prose-chat ul, .prose-chat ol { margin: .35em 0 .35em 1.2em; }
-    .prose-chat strong { color: #fee03b; }
-    .player-photo { background: #161f22 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%237b8a87" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>') center/60% no-repeat; }
-    .skel { background: linear-gradient(90deg, #11181a, #1a2528, #11181a); background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite; }
-    @keyframes skel { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
-    .typing-dot { animation: blink 1.2s infinite both; }
-    .typing-dot:nth-child(2) { animation-delay: .15s; }
-    .typing-dot:nth-child(3) { animation-delay: .3s; }
-    @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+    html, body { background: #000000; color: #ffffff; }
+    body { font-family: 'Inter', -apple-system, sans-serif; }
+    .scroll-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+    .scroll-thin::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    .badge { @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase; }
+    .player-silhouette { background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23444" stroke-width="1"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>') center/contain no-repeat; }
+    .pitch-container { position: relative; width: 100%; aspect-ratio: 2/3; background: #004d00; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; overflow: hidden; }
+    .pitch-line { position: absolute; border: 1px solid rgba(255,255,255,0.2); pointer-events: none; }
+    .pitch-center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1; border-radius: 50%; }
+    .pitch-midline { top: 50%; left: 0; width: 100%; height: 0; }
+    .pitch-area-top { top: 0; left: 25%; width: 50%; height: 15%; border-top: 0; }
+    .pitch-area-bot { bottom: 0; left: 25%; width: 50%; height: 15%; border-bottom: 0; }
+    .player-slot { position: absolute; transform: translate(-50%, -50%); cursor: pointer; transition: all 0.2s; }
+    .player-slot:hover { transform: translate(-50%, -50%) scale(1.1); }
+    .animate-in { animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body class="bg-pitch min-h-screen">
 
-<!-- HEADER -->
-<header class="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur">
+<header class="sticky top-0 z-40 border-b border-border bg-black/80 backdrop-blur">
     <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 h-16">
         <div class="flex items-center gap-3">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-cta shadow-glow">
-                <i data-lucide="trophy" class="h-5 w-5 text-bg"></i>
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary shadow-glow">
+                <i data-lucide="shield-check" class="h-6 w-6 text-white"></i>
             </div>
             <div class="leading-tight">
-                <div class="font-bold">Cartola IA</div>
-                <div class="text-[10px] uppercase tracking-widest text-muted">insights inteligentes</div>
+                <div class="font-black text-lg tracking-tighter">CARTOLA <span class="text-primary">IA</span></div>
+                <div class="text-[10px] uppercase tracking-widest text-muted font-bold">Pro Edition</div>
             </div>
         </div>
         <nav class="flex items-center gap-1" id="tabs">
-            <button data-tab="mercado"   class="tab-btn px-3 py-2 rounded-md text-sm flex items-center gap-2"><i data-lucide="bar-chart-3" class="h-4 w-4"></i><span class="hidden sm:inline">Mercado</span></button>
-            <button data-tab="comparar"  class="tab-btn px-3 py-2 rounded-md text-sm flex items-center gap-2"><i data-lucide="users"        class="h-4 w-4"></i><span class="hidden sm:inline">Comparar</span></button>
-            <button data-tab="escalacao" class="tab-btn px-3 py-2 rounded-md text-sm flex items-center gap-2"><i data-lucide="sparkles"     class="h-4 w-4"></i><span class="hidden sm:inline">Escalação IA</span></button>
+            <button data-tab="mercado"   class="tab-btn px-4 py-2 rounded-full text-sm font-bold transition-all hover:bg-surface2 flex items-center gap-2"><i data-lucide="layout-grid" class="h-4 w-4"></i><span class="hidden sm:inline">Mercado</span></button>
+            <button data-tab="assistida" class="tab-btn px-4 py-2 rounded-full text-sm font-bold transition-all hover:bg-surface2 flex items-center gap-2"><i data-lucide="mouse-pointer-2" class="h-4 w-4"></i><span class="hidden sm:inline">Assistida</span></button>
+            <button data-tab="escalacao" class="tab-btn px-4 py-2 rounded-full text-sm font-bold transition-all hover:bg-surface2 flex items-center gap-2"><i data-lucide="sparkles" class="h-4 w-4"></i><span class="hidden sm:inline">IA Master</span></button>
         </nav>
-        <button id="usageBtn" class="hidden sm:flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 text-xs hover:bg-surface2">
-            <i data-lucide="gauge" class="h-3.5 w-3.5 text-secondary"></i>
-            <span id="usageMini" class="text-muted">IA: —</span>
-        </button>
     </div>
 </header>
 
-<!-- MERCADO STATUS BAR (sempre visível) -->
 <div class="mx-auto max-w-7xl px-4 mt-4">
-    <div id="statusBar" class="rounded-xl border border-border bg-surface p-4 shadow-card flex flex-wrap items-center gap-3 text-sm">
-        <div class="skel h-4 w-40 rounded"></div>
+    <div id="statusBar" class="rounded-2xl border border-border bg-surface p-4 shadow-card flex flex-wrap items-center gap-4 text-sm">
+        <div class="animate-pulse h-4 w-48 bg-surface2 rounded"></div>
     </div>
 </div>
 
-<main class="mx-auto max-w-7xl px-4 py-6 space-y-6">
+<main class="mx-auto max-w-7xl px-4 py-6">
 
     <!-- TAB: Mercado -->
-    <section data-view="mercado" class="grid gap-4 lg:grid-cols-[1fr_minmax(380px,440px)]">
-        <div class="space-y-4">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Mercado da rodada</h1>
-                    <p class="text-sm text-muted">Dados ao vivo da API pública do Cartola FC. Atualizado a cada minuto.</p>
-                </div>
-                <button onclick="switchTab('escalacao')" class="bg-cta text-bg font-semibold rounded-md px-4 py-2 text-sm shadow-glow flex items-center gap-2">
-                    <i data-lucide="sparkles" class="h-4 w-4"></i>
-                    Gerar escalação ótima
-                </button>
+    <section data-view="mercado" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-black tracking-tight">Mercado Pro</h1>
+                <p class="text-sm text-muted">Análise avançada com Score IA e histórico completo.</p>
             </div>
-            <div id="mercadoTable"></div>
+            <div class="flex gap-2">
+                <button onclick="switchTab('assistida')" class="bg-surface2 border border-border text-white font-bold rounded-full px-6 py-2.5 text-sm transition-all hover:border-primary">Escalação Assistida</button>
+                <button onclick="switchTab('escalacao')" class="bg-primary text-white font-bold rounded-full px-6 py-2.5 text-sm shadow-glow transition-all hover:scale-105">IA Master</button>
+            </div>
         </div>
-        <aside class="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
-            <div id="chatPanel" class="h-full"></div>
-        </aside>
+        <div id="mercadoTable"></div>
     </section>
 
-    <!-- TAB: Comparar -->
-    <section data-view="comparar" class="hidden grid gap-4 lg:grid-cols-[1fr_minmax(380px,440px)]">
+    <!-- TAB: Assistida -->
+    <section data-view="assistida" class="hidden grid gap-6 lg:grid-cols-[1fr_400px]">
         <div class="space-y-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight">Comparador de jogadores</h1>
-                <p class="text-sm text-muted">Selecione até 4 jogadores e peça uma análise da IA.</p>
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-black">Campo de Jogo</h2>
+                <select id="assistEsquema" class="bg-surface border border-border rounded-full px-4 py-1.5 text-sm font-bold outline-none focus:border-primary">
+                    <option>4-3-3</option><option>4-4-2</option><option>3-4-3</option><option>3-5-2</option><option>5-3-2</option>
+                </select>
             </div>
-            <div id="compareSelected"></div>
-            <div id="compareTable"></div>
+            <div class="pitch-container shadow-2xl">
+                <div class="pitch-line pitch-midline"></div>
+                <div class="pitch-line pitch-center"></div>
+                <div class="pitch-line pitch-area-top"></div>
+                <div class="pitch-line pitch-area-bot"></div>
+                <div id="pitchSlots" class="absolute inset-0"></div>
+            </div>
         </div>
-        <aside class="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
-            <div id="chatPanelCompare" class="h-full"></div>
+        <aside class="space-y-4">
+            <div class="rounded-2xl border border-border bg-surface p-5 shadow-card sticky top-24">
+                <h3 class="font-black text-lg mb-4 flex items-center gap-2"><i data-lucide="list-plus" class="h-5 w-5 text-primary"></i> Seleção</h3>
+                <div id="assistSelectionInfo" class="text-sm text-muted mb-4">Clique em uma posição no campo para escolher o jogador.</div>
+                <div id="assistPlayerList" class="space-y-2 max-h-[500px] overflow-y-auto scroll-thin pr-2"></div>
+                <div class="mt-6 pt-4 border-t border-border flex justify-between items-center">
+                    <div>
+                        <div class="text-[10px] uppercase font-bold text-muted">Custo Total</div>
+                        <div id="assistTotalCusto" class="text-xl font-black">C$ 0.00</div>
+                    </div>
+                    <button id="btnFinalizarAssist" class="bg-primary text-white font-bold rounded-full px-6 py-2 text-sm opacity-50 cursor-not-allowed">Finalizar</button>
+                </div>
+            </div>
         </aside>
     </section>
 
     <!-- TAB: Escalação IA -->
     <section data-view="escalacao" class="hidden space-y-6">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight">Escalação ótima por IA</h1>
-            <p class="text-sm text-muted">A IA monta seu time considerando preço, média, status, scouts, adversário, mando e histórico.</p>
+        <div class="max-w-2xl mx-auto text-center space-y-2">
+            <h1 class="text-4xl font-black tracking-tighter">IA MASTER</h1>
+            <p class="text-muted">Deixe o Gemini 1.5 Pro montar a escalação matemática perfeita para você.</p>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 rounded-xl border border-border bg-surface p-5 shadow-card">
-            <div class="space-y-1.5">
-                <label class="text-xs font-semibold uppercase tracking-wider text-muted">Cartoletas (C$)</label>
-                <input id="inCartoletas" type="number" min="40" max="500" step="0.5" value="120"
-                       class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm focus:border-primary focus:outline-none">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 rounded-3xl border border-border bg-surface p-6 shadow-card">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest text-muted ml-2">Orçamento (C$)</label>
+                <input id="inCartoletas" type="number" value="120" class="w-full rounded-2xl border border-border bg-bg px-4 py-3 text-sm font-bold focus:border-primary outline-none">
             </div>
-            <div class="space-y-1.5">
-                <label class="text-xs font-semibold uppercase tracking-wider text-muted">Esquema</label>
-                <select id="inEsquema" class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm focus:border-primary focus:outline-none">
-                    <option>3-4-3</option><option>3-5-2</option><option selected>4-3-3</option>
-                    <option>4-4-2</option><option>4-5-1</option><option>5-3-2</option><option>5-4-1</option>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest text-muted ml-2">Esquema Tático</label>
+                <select id="inEsquema" class="w-full rounded-2xl border border-border bg-bg px-4 py-3 text-sm font-bold focus:border-primary outline-none">
+                    <option>4-3-3</option><option>4-4-2</option><option>3-4-3</option><option>3-5-2</option><option>5-3-2</option>
                 </select>
             </div>
-            <div class="space-y-1.5">
-                <label class="text-xs font-semibold uppercase tracking-wider text-muted">Preferência</label>
-                <select id="inPreferencia" class="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm focus:border-primary focus:outline-none">
-                    <option value="pontos">📈 Pontos (máx pontuação)</option>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest text-muted ml-2">Estratégia</label>
+                <select id="inPreferencia" class="w-full rounded-2xl border border-border bg-bg px-4 py-3 text-sm font-bold focus:border-primary outline-none">
+                    <option value="pontos">📈 Foco em Pontos</option>
                     <option value="equilibrado" selected>⚖️ Equilibrado</option>
                     <option value="valorizacao">💰 Valorização</option>
                 </select>
             </div>
-            <div class="flex items-end gap-3">
-                <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
-                    <input id="inEvitarDuvidas" type="checkbox" checked class="rounded border-border bg-surface accent-primary">
-                    Evitar dúvidas
-                </label>
-                <button id="btnGerar" class="ml-auto bg-cta text-bg font-semibold rounded-md px-4 py-2 text-sm shadow-glow flex items-center gap-2">
-                    <i data-lucide="sparkles" class="h-4 w-4"></i>
-                    Gerar com IA
+            <div class="flex items-end">
+                <button id="btnGerar" class="w-full bg-primary text-white font-black rounded-2xl py-3.5 shadow-glow transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="zap" class="h-5 w-5"></i>
+                    GERAR ESCALAÇÃO
                 </button>
             </div>
         </div>
 
-        <div id="lineupResult"></div>
+        <div id="lineupResult" class="animate-in"></div>
     </section>
 
 </main>
 
-<!-- USAGE MODAL -->
-<div id="usageModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this)closeUsage()">
-    <div class="bg-surface border border-border rounded-xl shadow-card max-w-md w-full p-6 space-y-4">
-        <div class="flex items-center justify-between">
-            <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="gauge" class="h-5 w-5 text-secondary"></i> Uso da IA nesta sessão</h3>
-            <button onclick="closeUsage()" class="text-muted hover:text-fg"><i data-lucide="x" class="h-4 w-4"></i></button>
-        </div>
-        <div id="usageBody" class="space-y-3 text-sm"></div>
-        <div class="text-xs text-muted border-t border-border pt-3">
-            Provedor: <span class="text-fg font-medium" id="usageProvider">—</span><br>
-            <span id="usageNote"></span>
-        </div>
+<footer class="mx-auto max-w-7xl px-4 py-12 text-center">
+    <div class="flex justify-center gap-4 mb-4">
+        <div class="h-8 w-8 rounded-full bg-surface2 flex items-center justify-center border border-border"><i data-lucide="github" class="h-4 w-4"></i></div>
+        <div class="h-8 w-8 rounded-full bg-surface2 flex items-center justify-center border border-border"><i data-lucide="twitter" class="h-4 w-4"></i></div>
     </div>
-</div>
-
-<footer class="mx-auto max-w-7xl px-4 py-8 text-center text-xs text-muted">
-    Dados em tempo real via <code class="text-fg/80">api.cartola.globo.com</code> · IA <span class="text-secondary font-medium">gpt-5.4</span> via Replit AI · Sem login, somente endpoints públicos
+    <p class="text-xs text-muted font-medium">Powered by <span class="text-primary">Gemini 1.5 Pro</span> & Cartola API · 2026</p>
 </footer>
 
 <script src="/js/app.js"></script>

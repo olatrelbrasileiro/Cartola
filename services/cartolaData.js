@@ -58,8 +58,20 @@ function buildAdversarioMap(partidas, clubes) {
         const casa = clubes[p.clube_casa_id];
         const fora = clubes[p.clube_visitante_id];
         if (casa && fora) {
-            map[p.clube_casa_id]      = { adv: fora.abreviacao || fora.nome, mando: 'casa', local: p.local || null };
-            map[p.clube_visitante_id] = { adv: casa.abreviacao || casa.nome, mando: 'fora', local: p.local || null };
+            map[p.clube_casa_id]      = { 
+                adv: fora.abreviacao || fora.nome, 
+                mando: 'casa', 
+                local: p.local || null,
+                escudo_adv: fora.escudos?.['60x60'] || null,
+                clube_id_adv: p.clube_visitante_id
+            };
+            map[p.clube_visitante_id] = { 
+                adv: casa.abreviacao || casa.nome, 
+                mando: 'fora', 
+                local: p.local || null,
+                escudo_adv: casa.escudos?.['60x60'] || null,
+                clube_id_adv: p.clube_casa_id
+            };
         }
     }
     return map;
@@ -74,20 +86,47 @@ function escudo(clube, size = '60x60') {
     return clube?.escudos?.[size] || null;
 }
 
-function estimarValorizacaoMinima(atleta, historicoAtleta) {
-    if (!atleta || atleta.preco_num <= 0) return null;
-    const baseMedia = atleta.media_num || 0;
-    const ultimas = (historicoAtleta || []).slice(-3).map(h => h.pontos);
-    const mediaRecente = ultimas.length ? ultimas.reduce((a, b) => a + b, 0) / ultimas.length : baseMedia;
-    const blend = ultimas.length >= 2 ? (baseMedia * 0.5 + mediaRecente * 0.5) : baseMedia;
-    return Number(blend.toFixed(2));
-}
-
-function projetarValorizacao(atleta, minimo) {
-    if (atleta.preco_num <= 0 || minimo == null) return 0;
-    const proxima = atleta.media_num || 0;
-    const fator = atleta.preco_num / 8;
-    return Number(((proxima - minimo) * 0.55 * fator).toFixed(2));
+/**
+ * Novo sistema de score baseado em:
+ * - Média sólida (30%)
+ * - Pontuação última rodada (10%)
+ * - Histórico recente (últimas 5 rodadas) (20%)
+ * - Confronto (mando e força do adversário simplificada) (20%)
+ * - Regularidade (jogos jogados) (10%)
+ * - Status (Provável tem bônus) (10%)
+ */
+function calcularScoreIA(atleta, histAtleta, adv) {
+    if (atleta.preco_num <= 0) return 0;
+    
+    let score = 0;
+    
+    // 1. Média (max 10 pts base)
+    score += Math.min(10, atleta.media_num || 0) * 3.0;
+    
+    // 2. Última rodada
+    score += Math.min(10, Math.max(0, atleta.pontos_num || 0)) * 1.0;
+    
+    // 3. Histórico recente (últimas 5)
+    if (histAtleta && histAtleta.length > 0) {
+        const recentes = histAtleta.slice(-5);
+        const mediaRecente = recentes.reduce((s, h) => s + h.pontos, 0) / recentes.length;
+        score += Math.min(10, Math.max(0, mediaRecente)) * 2.0;
+    }
+    
+    // 4. Confronto
+    if (adv) {
+        if (adv.mando === 'casa') score += 1.5; // Bônus mando
+    }
+    
+    // 5. Regularidade
+    const freq = (atleta.jogos_num || 0) / 10; // Normalizado para 10 jogos
+    score += Math.min(2, freq * 2);
+    
+    // 6. Status
+    if (atleta.status_id === 7) score += 2.0; // Provável
+    else if (atleta.status_id === 2) score += 0.5; // Dúvida
+    
+    return Number(score.toFixed(2));
 }
 
 async function getSnapshot() {
@@ -100,8 +139,11 @@ async function getSnapshot() {
     const clubes = mercado.clubes || {};
     const adv = buildAdversarioMap(partidas, clubes);
     const rodadaAtual = status.rodada_atual || 0;
+    
+    // Buscar histórico de 10 rodadas conforme solicitado
     const rodadasParaHistorico = [];
-    for (let r = Math.max(1, rodadaAtual - 5); r < rodadaAtual; r++) rodadasParaHistorico.push(r);
+    for (let r = Math.max(1, rodadaAtual - 10); r < rodadaAtual; r++) rodadasParaHistorico.push(r);
+    
     const historico = rodadasParaHistorico.length
         ? await getHistoricoRodadas(rodadasParaHistorico)
         : { rodadas: [], porAtleta: {} };
@@ -109,8 +151,13 @@ async function getSnapshot() {
     const atletas = (mercado.atletas || []).map(a => {
         const clube = clubes[a.clube_id] || {};
         const histAtleta = historico.porAtleta[a.atleta_id] || [];
-        const minVal = estimarValorizacaoMinima(a, histAtleta);
-        const projVal = projetarValorizacao(a, minVal);
+        const adversario = adv[a.clube_id] || null;
+        
+        // Verificar se jogou a última rodada
+        const jogouUltima = histAtleta.length > 0 && histAtleta[histAtleta.length - 1].rodada === (rodadaAtual - 1);
+        
+        const scoreIA = calcularScoreIA(a, histAtleta, adversario);
+
         return {
             atleta_id: a.atleta_id,
             apelido: a.apelido,
@@ -136,10 +183,10 @@ async function getSnapshot() {
             status_id: a.status_id,
             status_nome: STATUS_NOME[a.status_id] || `?`,
             entrou_em_campo: !!a.entrou_em_campo,
-            adversario: adv[a.clube_id] || null,
+            jogou_ultima: jogouUltima,
+            adversario,
             historico: histAtleta,
-            minimo_valorizar_est: minVal,
-            valorizacao_projetada: projVal
+            score_ia: scoreIA
         };
     });
 

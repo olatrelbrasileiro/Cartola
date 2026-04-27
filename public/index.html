@@ -3,128 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartola Auth - Login</title>
+    <title>Cartola IA - Insights de Escalação</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 20px;
+            color: #222;
         }
-        
-        .login-container {
-            background: white;
-            border-radius: 20px;
-            padding: 50px;
-            max-width: 500px;
-            width: 90%;
+        .wrap { max-width: 980px; margin: 0 auto; }
+        .hero {
+            background: white; border-radius: 20px; padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25); margin-bottom: 25px;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        
-        .logo {
-            font-size: 64px;
-            margin-bottom: 20px;
+        .hero h1 { font-size: 28px; margin-bottom: 8px; }
+        .hero p { color: #555; margin-bottom: 18px; }
+        .hero .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            background: #4CAF50; color: white; border: none;
+            padding: 12px 22px; border-radius: 50px; font-size: 15px;
+            cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
         }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
+        .btn:hover { filter: brightness(1.05); }
+        .btn-secondary { background: #667eea; }
+        .btn-ghost { background: transparent; color: #667eea; border: 1px solid #667eea; }
+        .card {
+            background: white; border-radius: 16px; padding: 25px;
+            margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-        
-        p {
-            color: #666;
-            margin-bottom: 30px;
+        .card h2 { margin-bottom: 8px; font-size: 20px; }
+        .card .hint { color: #666; font-size: 13px; margin-bottom: 18px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+        label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; font-weight: 600; }
+        input, select {
+            width: 100%; padding: 10px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 14px; background: white;
         }
-        
-        .btn-login {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
+        .meta-row { display: flex; gap: 15px; flex-wrap: wrap; font-size: 13px; color: #555; margin-top: 8px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-rodada { background: #e3f2fd; color: #1565c0; }
+        .badge-mercado-1 { background: #e8f5e9; color: #2e7d32; }
+        .badge-mercado-2 { background: #ffebee; color: #c62828; }
+        .lineup { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 15px; }
+        .player {
+            background: #f7f8fa; padding: 12px; border-radius: 10px; border-left: 4px solid #667eea;
+            font-size: 13px;
         }
-        
-        .btn-login:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(76,175,80,0.4);
+        .player.captain { border-left-color: #f57c00; background: #fff8e1; }
+        .player .pos { font-weight: 700; color: #667eea; font-size: 11px; letter-spacing: 1px; }
+        .player .name { font-weight: 600; font-size: 15px; margin: 3px 0; }
+        .player .clube { color: #888; font-size: 12px; }
+        .player .stats { display: flex; gap: 10px; margin-top: 6px; font-size: 12px; color: #444; }
+        .player .reason { margin-top: 6px; color: #555; font-size: 12px; font-style: italic; }
+        .totals {
+            display: flex; justify-content: space-around; flex-wrap: wrap;
+            background: #f7f8fa; padding: 15px; border-radius: 10px; margin-top: 15px;
         }
-        
-        .features {
-            margin-top: 40px;
-            text-align: left;
-            border-top: 1px solid #eee;
-            padding-top: 30px;
+        .totals div { text-align: center; }
+        .totals .val { font-size: 22px; font-weight: bold; color: #667eea; }
+        .totals .lbl { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .reasoning {
+            background: #f0f4ff; padding: 15px; border-radius: 10px;
+            margin-top: 15px; font-size: 14px; line-height: 1.5;
         }
-        
-        .features h3 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-        
-        .features ul {
-            list-style: none;
-        }
-        
-        .features li {
-            padding: 8px 0;
-            color: #666;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .features li:before {
-            content: "✅";
-        }
-        
-        .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #999;
-        }
+        .loading { text-align: center; padding: 30px; color: #666; }
+        .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 10px; margin-top: 15px; }
+        .footer { text-align: center; color: white; opacity: 0.85; font-size: 12px; margin-top: 20px; }
+        .footer a { color: white; }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo">🏆</div>
-        <h1>Cartola Token Manager</h1>
-        <p>Gerencie seu time e acesse dados do Cartola FC via API</p>
-        
-        <a href="/auth/login" class="btn-login">
-            🔑 Entrar com Globo.com
-        </a>
-        
-        <div class="features">
-            <h3>O que você pode fazer:</h3>
-            <ul>
-                <li>Ver informações do seu time</li>
-                <li>Acompanhar pontuações em tempo real</li>
-                <li>Analisar o mercado de atletas</li>
-                <li>Monitorar suas ligas</li>
-                <li>Acessar dados via API</li>
-            </ul>
+    <div class="wrap">
+        <div class="hero">
+            <div style="font-size: 56px;">🏆</div>
+            <h1>Cartola IA</h1>
+            <p>Sugestões de escalação geradas a partir dos dados ao vivo do Cartola FC</p>
+            <div class="actions">
+                <a href="#insights" class="btn">🧠 Gerar escalação</a>
+                <a href="/auth/login" class="btn btn-secondary">🔑 Login Globo.com (opcional)</a>
+            </div>
+            <p id="mercadoInfo" class="meta-row" style="justify-content:center; margin-top:14px;"></p>
         </div>
-        
+
+        <div class="card" id="insights">
+            <h2>🧠 Sugestão de Escalação</h2>
+            <p class="hint">Tudo é calculado com dados públicos: mercado, parciais, partidas e clubes — não precisa estar logado.</p>
+
+            <div class="grid">
+                <div>
+                    <label>Cartoletas (C$)</label>
+                    <input id="inCartoletas" type="number" min="50" max="200" step="0.5" value="100" />
+                </div>
+                <div>
+                    <label>Esquema</label>
+                    <select id="inEsquema">
+                        <option>4-3-3</option>
+                        <option>4-4-2</option>
+                        <option>3-5-2</option>
+                        <option>3-4-3</option>
+                        <option>5-3-2</option>
+                        <option>5-4-1</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Estilo</label>
+                    <select id="inEstilo">
+                        <option value="equilibrado">Equilibrado</option>
+                        <option value="agressivo">Agressivo</option>
+                        <option value="valorização">Valorização</option>
+                    </select>
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <button id="btnGerar" class="btn" style="width:100%;">🚀 Gerar com IA</button>
+                </div>
+            </div>
+
+            <div id="result"></div>
+        </div>
+
         <div class="footer">
-            🔒 Seus dados são seguros. O token é armazenado apenas durante sua sessão.
+            Dados em tempo real via <code>api.cartola.globo.com</code> ·
+            <a href="/api/catalog">ver catálogo de endpoints</a>
         </div>
     </div>
+
+    <script>
+    async function loadStatus() {
+        try {
+            const r = await fetch('/api/cartola/mercado/status');
+            const d = await r.json();
+            const open = d.status_mercado === 1;
+            document.getElementById('mercadoInfo').innerHTML =
+                `<span class="badge badge-rodada">Rodada ${d.rodada_atual}</span>` +
+                `<span class="badge badge-mercado-${d.status_mercado}">${open ? 'Mercado aberto' : 'Mercado fechado'}</span>`;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function gerar() {
+        const cartoletas = document.getElementById('inCartoletas').value;
+        const esquema = document.getElementById('inEsquema').value;
+        const estilo = document.getElementById('inEstilo').value;
+        const result = document.getElementById('result');
+        const btn = document.getElementById('btnGerar');
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Gerando...';
+        result.innerHTML = '<div class="loading">🤖 A IA está analisando o mercado, parciais e partidas... pode levar até 30s</div>';
+
+        try {
+            const url = `/api/insights/lineup?cartoletas=${encodeURIComponent(cartoletas)}&esquema=${encodeURIComponent(esquema)}&estilo=${encodeURIComponent(estilo)}`;
+            const r = await fetch(url);
+            const data = await r.json();
+
+            if (!r.ok || data.error) {
+                result.innerHTML = `<div class="error">❌ Erro: ${data.error || r.status}</div>`;
+                return;
+            }
+
+            renderLineup(data);
+        } catch (e) {
+            result.innerHTML = `<div class="error">❌ ${e.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🚀 Gerar com IA';
+        }
+    }
+
+    function renderLineup({ meta, sugestao }) {
+        const result = document.getElementById('result');
+        if (!sugestao || !sugestao.escalacao) {
+            result.innerHTML = `<div class="error">A IA não retornou uma escalação válida. Resposta bruta:<pre>${JSON.stringify(sugestao, null, 2)}</pre></div>`;
+            return;
+        }
+        const cap = sugestao.capitao_id;
+        const players = sugestao.escalacao.map(p => `
+            <div class="player ${p.id === cap ? 'captain' : ''}">
+                <div class="pos">${p.posicao}${p.id === cap ? ' · 🅒 CAPITÃO' : ''}</div>
+                <div class="name">${p.apelido}</div>
+                <div class="clube">${p.clube}</div>
+                <div class="stats">
+                    <span>💰 C$ ${p.preco?.toFixed?.(2) ?? p.preco}</span>
+                    <span>⚡ Méd ${p.media?.toFixed?.(2) ?? p.media}</span>
+                </div>
+                ${p.motivo ? `<div class="reason">"${p.motivo}"</div>` : ''}
+            </div>
+        `).join('');
+
+        const mediaSoma = sugestao.escalacao.reduce((s, p) => s + (Number(p.media) || 0), 0);
+
+        result.innerHTML = `
+            <div class="totals">
+                <div><div class="val">R${meta.rodada}</div><div class="lbl">Rodada</div></div>
+                <div><div class="val">${sugestao.esquema}</div><div class="lbl">Esquema</div></div>
+                <div><div class="val">C$ ${sugestao.custo_total?.toFixed?.(2) ?? sugestao.custo_total}</div><div class="lbl">Custo total</div></div>
+                <div><div class="val">${mediaSoma.toFixed(2)}</div><div class="lbl">Soma das médias</div></div>
+            </div>
+            <div class="lineup">${players}</div>
+            ${sugestao.raciocinio ? `<div class="reasoning"><strong>💡 Estratégia:</strong> ${sugestao.raciocinio}</div>` : ''}
+        `;
+    }
+
+    document.getElementById('btnGerar').addEventListener('click', gerar);
+    loadStatus();
+    </script>
 </body>
 </html>

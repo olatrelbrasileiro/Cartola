@@ -3,6 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
+const { suggestLineup, analyzePlayer, ESQUEMAS } = require('./services/insights');
 
 const app = express();
 
@@ -474,6 +475,32 @@ app.post('/auth/refresh', async (req, res) => {
 app.get('/auth/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
+});
+
+// ============ AI: Insights de escalação ============
+app.get('/api/insights/lineup', async (req, res) => {
+    try {
+        const cartoletas = parseFloat(req.query.cartoletas) || 100;
+        const esquema = String(req.query.esquema || '4-3-3');
+        const estilo = String(req.query.estilo || 'equilibrado');
+        if (!ESQUEMAS[esquema]) {
+            return res.status(400).json({ error: 'esquema_invalido', validos: Object.keys(ESQUEMAS) });
+        }
+        const result = await suggestLineup({ cartoletas, esquema, estilo });
+        res.json(result);
+    } catch (error) {
+        console.error('Erro insights/lineup:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/insights/player/:id', async (req, res) => {
+    try {
+        const result = await analyzePlayer(req.params.id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // ============ Catálogo de endpoints da API do Cartola ============

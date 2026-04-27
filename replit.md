@@ -49,3 +49,11 @@ Most useful for AI/lineup features:
 - `auth/time/info` (auth) — my full team
 - `auth/mercado/atleta/:idAtleta/pontuacao` (auth) — per-athlete scoring history
 - `auth/gatomestre/atletas` (auth) — Gato Mestre analytics per athlete
+
+## AI Insights (Apr 2026)
+
+- `services/cartolaData.js`: cliente com cache (TTL 20s–5min) para endpoints públicos do Cartola (`mercado/status`, `atletas/mercado`, `atletas/pontuados`, `partidas`, `clubes`, `mercado/destaques`). Enriquecimento dos atletas com nome do clube, posição em texto, status legível e parcial da rodada.
+- `services/insights.js`: usa o SDK `openai` apontando para `AI_INTEGRATIONS_OPENAI_BASE_URL` / `AI_INTEGRATIONS_OPENAI_API_KEY`. Modelo `gpt-5.4`, `response_format: json_object`, `max_completion_tokens: 8192` (sem `temperature` — restrição do gpt-5+). Função `suggestLineup({ cartoletas, esquema, estilo })` filtra atletas prováveis, top 10 por posição por média, e pede escalação que respeite orçamento + esquema. Função `analyzePlayer(id)` para análise pontual.
+- Rotas: `GET /api/insights/lineup?cartoletas=&esquema=&estilo=` e `GET /api/insights/player/:id`. Esquemas válidos: 4-3-3, 4-4-2, 3-5-2, 3-4-3, 5-3-2, 5-4-1.
+- UI: `public/index.html` reescrito como landing "Cartola IA" com painel para gerar escalação (sem login). Login Globo permanece opcional para o dashboard de catálogo.
+- Integração instalada via blueprint `javascript_openai_ai_integrations` (gerenciada pela Replit, sem chave própria; cobrada nos créditos). Os arquivos template em `.replit_integration_files/` (TypeScript + Drizzle) NÃO são usados — projeto é JS puro e usa o SDK direto.

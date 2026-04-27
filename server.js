@@ -7,9 +7,23 @@ const crypto = require('crypto');
 const app = express();
 
 const isProduction = process.env.NODE_ENV === 'production';
+const PORT = process.env.PORT || 5000;
 const baseUrl = isProduction 
-    ? process.env.RENDER_EXTERNAL_URL || 'https://seu-app.onrender.com'
-    : 'http://localhost:3000';
+    ? process.env.RENDER_EXTERNAL_URL || process.env.REPLIT_DEV_DOMAIN || 'https://seu-app.onrender.com'
+    : process.env.REPLIT_DEV_DOMAIN
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : `http://localhost:${PORT}`;
+
+app.set('trust proxy', 1);
+
+if (!isProduction) {
+    app.use((req, res, next) => {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        next();
+    });
+}
 
 const config = {
     clientId: 'cartola-web@apps.globoid',
@@ -25,7 +39,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: isProduction, httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
+    cookie: { secure: isProduction, httpOnly: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'lax' }
 }));
 
 function generatePKCE() {
@@ -416,7 +430,6 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando em ${baseUrl}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor rodando em ${baseUrl} (porta ${PORT})`);
 });

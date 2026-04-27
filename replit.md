@@ -1,0 +1,34 @@
+# Cartola Auth
+
+OAuth authentication helper for the Cartola FC API. Lets a user log in with Globo.com (OIDC + PKCE), stores their access/refresh tokens in a server-side session, and exposes a small UI plus a proxy that forwards authenticated requests to `api.cartola.globo.com`.
+
+## Stack
+
+- Node.js 20
+- Express 4 + express-session
+- node-fetch v2
+- Static assets in `public/` (landing page, dashboard)
+
+## Project Layout
+
+- `server.js` — Express server, OAuth login/callback, dashboard, Cartola API proxy
+- `public/` — Static landing page and assets
+- `package.json` — Dependencies and `start`/`dev` scripts
+- `render.yaml` — Original Render deployment config (kept for reference)
+
+## Replit Setup
+
+- Workflow `Start application` runs `npm start` and listens on port `5000` (host `0.0.0.0`) so the Replit web preview can reach it.
+- `app.set('trust proxy', 1)` is enabled because requests come through Replit's proxy.
+- Cache-Control no-store headers are sent in development to avoid the iframe preview serving stale content.
+- Deployment target is `autoscale` with run command `npm start`.
+
+## Environment Variables
+
+- `SESSION_SECRET` (optional) — session signing secret. A random one is generated on boot if unset (sessions reset on every restart).
+- `PORT` (optional) — defaults to `5000`.
+- `NODE_ENV=production` enables secure cookies in production.
+
+## OAuth Notes
+
+The OAuth client `cartola-web@apps.globoid` uses Globo's OpenID Connect provider with PKCE. The redirect URI is fixed to `https://cartola.globo.com/login-callback.html` (the Cartola web app). After login the user is sent back to this app's `/callback` route to exchange the code for tokens.

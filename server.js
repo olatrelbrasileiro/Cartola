@@ -258,13 +258,11 @@ app.get('/dashboard', (req, res) => {
                 
                 <div class="card">
                     <h2>📡 APIs do Cartola</h2>
-                    <p>Clique em qualquer endpoint para testar:</p>
-                    <div class="api-list">
-                        <div class="api-item" data-endpoint="auth/time/info"><div><div class="api-name">GET /auth/time/info</div><div class="api-desc" style="font-size:12px;color:#666;">Informações do seu time</div></div><span>🔍 Testar →</span></div>
-                        <div class="api-item" data-endpoint="atletas/mercado"><div><div class="api-name">GET /atletas/mercado</div><div class="api-desc" style="font-size:12px;color:#666;">Lista de atletas do mercado</div></div><span>🔍 Testar →</span></div>
-                        <div class="api-item" data-endpoint="partidas"><div><div class="api-name">GET /partidas</div><div class="api-desc" style="font-size:12px;color:#666;">Jogos da rodada</div></div><span>🔍 Testar →</span></div>
-                        <div class="api-item" data-endpoint="mercado/status"><div><div class="api-name">GET /mercado/status</div><div class="api-desc" style="font-size:12px;color:#666;">Status do mercado</div></div><span>🔍 Testar →</span></div>
+                    <p>Catálogo extraído do bundle oficial. Clique para testar — endpoints com parâmetros (<code>:id</code>, <code>:rodada</code> etc.) abrem um prompt.</p>
+                    <div style="margin:15px 0;">
+                        <input id="apiFilter" placeholder="🔎 Filtrar endpoint..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;" />
                     </div>
+                    <div id="apiGroups"></div>
                     <div id="responseArea" class="response-area"></div>
                 </div>
             </div>
@@ -313,16 +311,19 @@ app.get('/dashboard', (req, res) => {
                     const responseArea = document.getElementById('responseArea');
                     responseArea.innerHTML = '<div style="text-align:center;padding:20px;">🔄 Carregando...</div>';
                     responseArea.classList.add('show');
+                    responseArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     try {
                         const response = await fetch(\`/api/cartola/\${endpoint}\`);
-                        const data = await response.json();
+                        const text = await response.text();
+                        let data;
+                        try { data = JSON.parse(text); } catch(_) { data = text; }
                         responseArea.innerHTML = \`
                             <div style="margin-bottom:15px;">
-                                <strong>📡 GET /\${endpoint}</strong>
+                                <strong>📡 \${response.status} GET /\${endpoint}</strong>
                                 <button onclick="copyResponse()" style="margin-left:10px;padding:4px 8px;">📋 Copiar</button>
                                 <button onclick="closeResponse()" style="margin-left:5px;padding:4px 8px;">❌ Fechar</button>
                             </div>
-                            <pre>\${JSON.stringify(data, null, 2)}</pre>
+                            <pre>\${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
                         \`;
                         lastResponse = data;
                     } catch(e) {
@@ -330,14 +331,96 @@ app.get('/dashboard', (req, res) => {
                     }
                 }
                 
-                function copyResponse() { if (lastResponse) { navigator.clipboard.writeText(JSON.stringify(lastResponse, null, 2)); alert('Copiado!'); } }
+                function copyResponse() { if (lastResponse) { navigator.clipboard.writeText(typeof lastResponse === 'string' ? lastResponse : JSON.stringify(lastResponse, null, 2)); alert('Copiado!'); } }
                 function closeResponse() { document.getElementById('responseArea').classList.remove('show'); }
                 async function logout() { await fetch('/auth/logout'); window.location.href = '/'; }
-                
-                document.querySelectorAll('.api-item').forEach(el => {
-                    el.addEventListener('click', () => callApi(el.dataset.endpoint));
+
+                function resolveEndpoint(template) {
+                    // Substitui :param por valores via prompt
+                    if (template.includes('?')) {
+                        const [base, qs] = template.split('?');
+                        const val = prompt(\`Informe o valor para "?\${qs}"\`, '');
+                        if (val === null) return null;
+                        return \`\${base}?\${qs}\${encodeURIComponent(val)}\`;
+                    }
+                    return template.replace(/:([a-zA-Z_]+)/g, (_, name) => {
+                        const v = prompt(\`Informe o valor para :\${name}\`, '');
+                        return v === null ? '' : encodeURIComponent(v);
+                    });
+                }
+
+                const groupLabels = {
+                    'meu-time':  '🏆 Meu Time',
+                    'atletas':   '⚽ Atletas',
+                    'mercado':   '💰 Mercado',
+                    'partidas':  '🗓️ Partidas',
+                    'clubes':    '🏟️ Clubes',
+                    'ligas':     '🏅 Ligas',
+                    'time':      '👤 Times',
+                    'busca':     '🔎 Busca',
+                    'social':    '👥 Social',
+                    'meta':      '📰 Meta'
+                };
+
+                async function loadCatalog() {
+                    const container = document.getElementById('apiGroups');
+                    container.innerHTML = '<div style="padding:15px;color:#666;">Carregando catálogo...</div>';
+                    try {
+                        const r = await fetch('/api/catalog');
+                        const data = await r.json();
+                        const groups = {};
+                        for (const ep of data.endpoints) {
+                            (groups[ep.group] ||= []).push(ep);
+                        }
+                        container.innerHTML = '';
+                        const order = ['meu-time','atletas','mercado','partidas','clubes','ligas','time','busca','social','meta'];
+                        for (const g of order) {
+                            if (!groups[g]) continue;
+                            const section = document.createElement('div');
+                            section.style.marginBottom = '20px';
+                            section.innerHTML = \`<h3 style="margin-bottom:10px;color:#444;">\${groupLabels[g] || g}</h3>\`;
+                            const list = document.createElement('div');
+                            list.className = 'api-list';
+                            for (const ep of groups[g]) {
+                                const item = document.createElement('div');
+                                item.className = 'api-item';
+                                item.dataset.endpoint = ep.path;
+                                item.dataset.method = ep.method;
+                                item.dataset.search = (ep.path + ' ' + ep.desc).toLowerCase();
+                                const lock = ep.authRequired ? '🔒 ' : '';
+                                item.innerHTML = \`
+                                    <div>
+                                        <div class="api-name">\${lock}\${ep.method} /\${ep.path}</div>
+                                        <div class="api-desc" style="font-size:12px;color:#666;">\${ep.desc}</div>
+                                    </div>
+                                    <span>🔍 Testar →</span>
+                                \`;
+                                item.addEventListener('click', () => {
+                                    if (ep.method !== 'GET') {
+                                        alert('Este endpoint usa ' + ep.method + ' — ainda não suportado pelo painel.');
+                                        return;
+                                    }
+                                    const resolved = resolveEndpoint(ep.path);
+                                    if (resolved) callApi(resolved);
+                                });
+                                list.appendChild(item);
+                            }
+                            section.appendChild(list);
+                            container.appendChild(section);
+                        }
+                    } catch(e) {
+                        container.innerHTML = '<div style="color:#f44336;padding:15px;">Erro carregando catálogo: ' + e.message + '</div>';
+                    }
+                }
+
+                document.getElementById('apiFilter').addEventListener('input', (e) => {
+                    const q = e.target.value.toLowerCase().trim();
+                    document.querySelectorAll('.api-item').forEach(el => {
+                        el.style.display = !q || el.dataset.search.includes(q) ? '' : 'none';
+                    });
                 });
-                
+
+                loadCatalog();
                 loadTeamStats();
                 checkTokenStatus();
                 setInterval(checkTokenStatus, 30000);
@@ -393,17 +476,97 @@ app.get('/auth/logout', (req, res) => {
     res.redirect('/');
 });
 
+// ============ Catálogo de endpoints da API do Cartola ============
+// Extraído do bundle main.js do app oficial. authRequired indica se o endpoint
+// exige Bearer token (rota /auth/* ou /logged/*).
+const cartolaCatalog = [
+    // --- Mercado / dados públicos ---
+    { path: 'mercado/status',           method: 'GET', authRequired: false, group: 'mercado',   desc: 'Status do mercado, rodada atual, fechamento' },
+    { path: 'mercado/destaques',        method: 'GET', authRequired: false, group: 'mercado',   desc: 'Atletas mais escalados / destaques do mercado' },
+    { path: 'atletas/mercado',          method: 'GET', authRequired: false, group: 'atletas',   desc: 'Lista completa de atletas disponíveis no mercado (preço, scout, status)' },
+    { path: 'atletas/pontuados',        method: 'GET', authRequired: false, group: 'atletas',   desc: 'Pontuação parcial dos atletas na rodada em andamento' },
+    { path: 'atletas/pontuados/:rodada',method: 'GET', authRequired: false, group: 'atletas',   desc: 'Pontuação consolidada dos atletas em uma rodada específica' },
+    { path: 'atletas/status',           method: 'GET', authRequired: false, group: 'atletas',   desc: 'Tabela de status possíveis (provável, dúvida, contundido, suspenso, nulo)' },
+    { path: 'clubes',                   method: 'GET', authRequired: false, group: 'clubes',    desc: 'Cadastro de todos os clubes' },
+    { path: 'clubes/mercado',           method: 'GET', authRequired: false, group: 'clubes',    desc: 'Clubes ativos no mercado atual' },
+    { path: 'posicoes',                 method: 'GET', authRequired: false, group: 'clubes',    desc: 'Tabela de posições (gol, lat, zag, mei, ata, tec)' },
+    { path: 'partidas',                 method: 'GET', authRequired: false, group: 'partidas',  desc: 'Partidas da rodada atual' },
+    { path: 'partidas/:rodada',         method: 'GET', authRequired: false, group: 'partidas',  desc: 'Partidas de uma rodada específica' },
+    { path: 'rodadas',                  method: 'GET', authRequired: false, group: 'partidas',  desc: 'Lista de rodadas com início e fim' },
+    { path: 'pos-rodada/destaques',     method: 'GET', authRequired: false, group: 'mercado',   desc: 'Destaques pós-rodada (seleção da rodada, mito etc.)' },
+    { path: 'patrocinadores',           method: 'GET', authRequired: false, group: 'mercado',   desc: 'Patrocinadores das ligas' },
+    { path: 'busca?q=',                 method: 'GET', authRequired: false, group: 'busca',     desc: 'Busca global (times e ligas)' },
+    { path: 'times?q=',                 method: 'GET', authRequired: false, group: 'busca',     desc: 'Busca de times por nome' },
+    { path: 'ligas?q=',                 method: 'GET', authRequired: false, group: 'busca',     desc: 'Busca de ligas por nome' },
+    { path: 'ligas/destaques',          method: 'GET', authRequired: false, group: 'ligas',     desc: 'Ligas em destaque' },
+    { path: 'ligas/ultimas',            method: 'GET', authRequired: false, group: 'ligas',     desc: 'Últimas ligas criadas' },
+    { path: 'time/id/:id',              method: 'GET', authRequired: false, group: 'time',      desc: 'Time público pelo id' },
+    { path: 'time/substituicoes/:id',                method: 'GET', authRequired: false, group: 'time', desc: 'Substituições já feitas pelo time na rodada atual' },
+    { path: 'time/substituicoes/:id/:rodada',        method: 'GET', authRequired: false, group: 'time', desc: 'Substituições de um time em uma rodada específica' },
+    { path: 'liga/:liga_id/times',      method: 'GET', authRequired: false, group: 'ligas',     desc: 'Times participantes de uma liga' },
+    { path: 'termodeuso/:serviceId',    method: 'GET', authRequired: false, group: 'meta',      desc: 'Termo de uso de um serviço' },
+
+    // --- Endpoints autenticados (precisam do Bearer) ---
+    { path: 'auth/time/info',           method: 'GET', authRequired: true,  group: 'meu-time',  desc: 'Informações completas do meu time (escalação, patrimônio, pontos)' },
+    { path: 'auth/time',                method: 'GET', authRequired: true,  group: 'meu-time',  desc: 'Resumo do meu time' },
+    { path: 'auth/time/historico/',     method: 'GET', authRequired: true,  group: 'meu-time',  desc: 'Histórico de pontuação do meu time' },
+    { path: 'auth/time/pro',            method: 'GET', authRequired: true,  group: 'meu-time',  desc: 'Status Cartola PRO do meu time' },
+    { path: 'auth/time/patrocinadores', method: 'GET', authRequired: true,  group: 'meu-time',  desc: 'Patrocinadores do meu time' },
+    { path: 'auth/time/salvar',         method: 'POST',authRequired: true,  group: 'meu-time',  desc: 'Salvar escalação' },
+    { path: 'auth/time/substituicoes',  method: 'GET', authRequired: true,  group: 'meu-time',  desc: 'Substituições disponíveis' },
+    { path: 'auth/stats/historico',     method: 'GET', authRequired: true,  group: 'meu-time',  desc: 'Estatísticas históricas do meu time' },
+    { path: 'auth/mercado/atleta/:idAtleta/pontuacao', method: 'GET', authRequired: true, group: 'atletas', desc: 'Histórico de pontuação de um atleta' },
+    { path: 'auth/gatomestre/atletas',  method: 'GET', authRequired: true,  group: 'atletas',   desc: 'Análises do Gato Mestre por atleta' },
+    { path: 'auth/noticias',            method: 'GET', authRequired: true,  group: 'meta',      desc: 'Feed de notícias do Cartola' },
+    { path: 'auth/aviso',               method: 'GET', authRequired: true,  group: 'meta',      desc: 'Avisos para o usuário logado' },
+    { path: 'auth/amigos',              method: 'GET', authRequired: true,  group: 'social',    desc: 'Amigos do usuário' },
+    { path: 'auth/convites',            method: 'GET', authRequired: true,  group: 'social',    desc: 'Convites recebidos' },
+    { path: 'auth/ligas',               method: 'GET', authRequired: true,  group: 'ligas',     desc: 'Ligas em que estou' },
+    { path: 'auth/liga/:slug',          method: 'GET', authRequired: true,  group: 'ligas',     desc: 'Detalhes de uma liga' },
+    { path: 'auth/reativar/ligas',      method: 'GET', authRequired: true,  group: 'ligas',     desc: 'Ligas elegíveis para reativação' },
+    { path: 'logged/stats/atletas',     method: 'GET', authRequired: true,  group: 'atletas',   desc: 'Stats agregadas de atletas para usuário logado' },
+    { path: 'logged/ligas/campeoes-nacionais', method: 'GET', authRequired: true, group: 'ligas', desc: 'Campeões das ligas nacionais' },
+    { path: 'logged/liga/?search=',     method: 'GET', authRequired: true,  group: 'ligas',     desc: 'Busca de ligas (logado)' },
+    { path: 'logged/time/?search=',     method: 'GET', authRequired: true,  group: 'busca',     desc: 'Busca de times (logado)' }
+];
+
+const authRequiredPaths = new Set(
+    cartolaCatalog
+        .filter(e => e.authRequired)
+        .map(e => e.path.split(/[?:]/)[0].replace(/\/$/, ''))
+);
+
+function endpointNeedsAuth(endpoint) {
+    const clean = endpoint.split('?')[0].replace(/\/$/, '');
+    if (clean.startsWith('auth/') || clean.startsWith('logged/')) return true;
+    for (const prefix of authRequiredPaths) {
+        if (clean === prefix || clean.startsWith(prefix + '/')) return true;
+    }
+    return false;
+}
+
+// ============ API: Catálogo de endpoints ============
+app.get('/api/catalog', (req, res) => {
+    res.json({
+        baseUrl: config.cartolaApi,
+        proxyBase: '/api/cartola/',
+        total: cartolaCatalog.length,
+        endpoints: cartolaCatalog
+    });
+});
+
 // ============ API: Proxy para Cartola ============
 app.get('/api/cartola/:endpoint(*)', async (req, res) => {
-    if (!req.session.accessToken) {
+    const endpoint = req.params.endpoint;
+    const needsAuth = endpointNeedsAuth(endpoint);
+
+    if (needsAuth && !req.session.accessToken) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
-    
-    const endpoint = req.params.endpoint;
-    const url = `${config.cartolaApi}/${endpoint}`;
-    const publicEndpoints = ['atletas/mercado', 'partidas', 'mercado/status', 'clubes', 'posicoes'];
-    const needsAuth = !publicEndpoints.includes(endpoint);
-    
+
+    const qs = req.url.includes('?') ? '?' + req.url.split('?').slice(1).join('?') : '';
+    const url = `${config.cartolaApi}/${endpoint}${qs}`;
+
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36',
         'Accept': 'application/json',
@@ -411,15 +574,20 @@ app.get('/api/cartola/:endpoint(*)', async (req, res) => {
         'X-GLB-APP': 'cartola_web',
         'Referer': 'https://cartola.globo.com/'
     };
-    
+
     if (needsAuth) {
         headers['Authorization'] = `Bearer ${req.session.accessToken}`;
     }
-    
+
     try {
         const response = await fetch(url, { headers });
-        const data = await response.json();
-        res.json(data);
+        const text = await response.text();
+        res.status(response.status);
+        try {
+            res.json(JSON.parse(text));
+        } catch (_) {
+            res.type(response.headers.get('content-type') || 'text/plain').send(text);
+        }
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

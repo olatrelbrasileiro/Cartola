@@ -32,3 +32,20 @@ OAuth authentication helper for the Cartola FC API. Lets a user log in with Glob
 ## OAuth Notes
 
 The OAuth client `cartola-web@apps.globoid` uses Globo's OpenID Connect provider with PKCE. The redirect URI is fixed to `https://cartola.globo.com/login-callback.html` (the Cartola web app). After login the user is sent back to this app's `/callback` route to exchange the code for tokens.
+
+## Cartola API Catalog
+
+The full list of endpoints used by the Cartola web app was extracted from the official `main.js` bundle and exposed at `GET /api/catalog`. Each entry has `path`, `method`, `authRequired`, `group`, and `desc`. The proxy `GET /api/cartola/<endpoint>` automatically attaches the Bearer token for any path under `auth/*` or `logged/*`.
+
+Most useful for AI/lineup features:
+
+- `mercado/status` — current round and market state
+- `atletas/mercado` — full list of athletes with price, scout, status, position, club
+- `atletas/pontuados` and `atletas/pontuados/:rodada` — live and historical scoring
+- `atletas/status` — status table (provável/dúvida/contundido/suspenso/nulo)
+- `clubes`, `clubes/mercado`, `posicoes` — reference tables
+- `partidas`, `partidas/:rodada`, `rodadas` — fixtures
+- `mercado/destaques`, `pos-rodada/destaques` — most picked / round highlights
+- `auth/time/info` (auth) — my full team
+- `auth/mercado/atleta/:idAtleta/pontuacao` (auth) — per-athlete scoring history
+- `auth/gatomestre/atletas` (auth) — Gato Mestre analytics per athlete

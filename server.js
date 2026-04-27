@@ -1,4 +1,4 @@
-// server.js - Código completo e corrigido
+// server.js - Navegador embutido no site
 const express = require('express');
 const session = require('express-session');
 const fetch = require('node-fetch');
@@ -34,216 +34,8 @@ function generatePKCE() {
     return { verifier, challenge };
 }
 
-// ============ ROTA PRINCIPAL ============
+// ============ PÁGINA PRINCIPAL COM NAVEGADOR EMBUTIDO ============
 app.get('/', (req, res) => {
-    // Reseta a sessão para garantir um state novo
-    req.session.regenerate((err) => {
-        if (err) console.error('Session regenerate error:', err);
-        
-        const state = crypto.randomBytes(16).toString('hex');
-        const { verifier, challenge } = generatePKCE();
-        
-        req.session.oauthState = state;
-        req.session.codeVerifier = verifier;
-        
-        const params = new URLSearchParams({
-            response_type: 'code',
-            client_id: config.clientId,
-            redirect_uri: config.redirectUri,
-            scope: 'openid profile glbid birthdate',
-            state: state,
-            code_challenge: challenge,
-            code_challenge_method: 'S256'
-        });
-        
-        const loginUrl = `${config.authUrl}?${params.toString()}`;
-        
-        res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Cartola Token Manager</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        min-height: 100vh;
-                        padding: 20px;
-                    }
-                    .container { max-width: 550px; margin: 0 auto; }
-                    .card {
-                        background: white;
-                        border-radius: 20px;
-                        padding: 30px;
-                        margin-bottom: 20px;
-                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                    }
-                    .logo { font-size: 48px; text-align: center; }
-                    h1 { text-align: center; color: #333; font-size: 22px; margin: 10px 0; }
-                    .subtitle { text-align: center; color: #666; margin-bottom: 25px; font-size: 13px; }
-                    .info {
-                        background: #e3f2fd;
-                        padding: 12px;
-                        border-radius: 8px;
-                        margin: 15px 0;
-                        font-size: 13px;
-                        color: #1565c0;
-                        text-align: center;
-                    }
-                    button {
-                        background: #4CAF50;
-                        color: white;
-                        border: none;
-                        padding: 14px 20px;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        width: 100%;
-                        font-size: 16px;
-                        font-weight: bold;
-                        margin: 5px 0;
-                    }
-                    button:hover { background: #45a049; }
-                    .btn-secondary { background: #6c757d; }
-                    .btn-secondary:hover { background: #5a6268; }
-                    .url-box {
-                        background: #f8f9fa;
-                        border-radius: 12px;
-                        padding: 15px;
-                        margin: 15px 0;
-                    }
-                    input {
-                        width: 100%;
-                        padding: 12px;
-                        margin: 10px 0;
-                        border: 1px solid #ddd;
-                        border-radius: 8px;
-                        font-family: monospace;
-                        font-size: 11px;
-                    }
-                    .status {
-                        margin-top: 15px;
-                        padding: 12px;
-                        border-radius: 8px;
-                        text-align: center;
-                        display: none;
-                    }
-                    .status-success { background: #d4edda; color: #155724; display: block; }
-                    .status-error { background: #f8d7da; color: #721c24; display: block; }
-                    .status-loading { background: #fff3cd; color: #856404; display: block; }
-                    .footer { text-align: center; margin-top: 20px; font-size: 11px; color: rgba(255,255,255,0.7); }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="card">
-                        <div class="logo">🏆</div>
-                        <h1>Cartola Token Manager</h1>
-                        <div class="subtitle">Obtenha seu token de acesso à API do Cartola FC</div>
-                        
-                        <div class="info">
-                            🔐 Clique no botão abaixo para fazer login na Globo.com
-                        </div>
-                        
-                        <button id="loginBtn">🔑 Fazer login</button>
-                        
-                        <div id="manualBox" style="display: none;">
-                            <div class="url-box">
-                                <p><strong>📋 Passo 2: Cole a URL de retorno</strong></p>
-                                <p style="font-size: 12px; margin-bottom: 10px;">Após fazer login, copie a URL da página e cole abaixo:</p>
-                                <input type="text" id="callbackUrl" placeholder="https://cartola.globo.com/login-callback.html?code=..." />
-                                <button id="exchangeBtn" class="btn-secondary">🔄 Obter token</button>
-                            </div>
-                        </div>
-                        
-                        <div id="status" class="status"></div>
-                    </div>
-                    <div class="footer">
-                        🔒 O token é armazenado apenas durante sua sessão.
-                    </div>
-                </div>
-                
-                <script>
-                    let loginWindow = null;
-                    
-                    function showStatus(message, type) {
-                        const statusDiv = document.getElementById('status');
-                        statusDiv.innerHTML = message;
-                        statusDiv.className = 'status status-' + type;
-                        setTimeout(() => {
-                            if (type !== 'loading') {
-                                setTimeout(() => {
-                                    statusDiv.style.display = 'none';
-                                    statusDiv.className = 'status';
-                                }, 5000);
-                            }
-                        }, 100);
-                    }
-                    
-                    document.getElementById('loginBtn').onclick = async () => {
-                        showStatus('🔄 Gerando link de login...', 'loading');
-                        
-                        const response = await fetch('/auth/login-url');
-                        const data = await response.json();
-                        
-                        loginWindow = window.open(data.url, 'cartola_login', 'width=500,height=600,toolbar=no,location=yes');
-                        
-                        if (!loginWindow) {
-                            showStatus('⚠️ Pop-up bloqueado! <a href="' + data.url + '" target="_blank">Clique aqui para abrir manualmente</a>', 'error');
-                        } else {
-                            showStatus('✅ Janela de login aberta! Faça login e depois cole a URL da página de retorno.', 'success');
-                            document.getElementById('manualBox').style.display = 'block';
-                        }
-                    };
-                    
-                    document.getElementById('exchangeBtn').onclick = async () => {
-                        const url = document.getElementById('callbackUrl').value;
-                        
-                        if (!url) {
-                            showStatus('❌ Por favor, cole a URL da página de callback', 'error');
-                            return;
-                        }
-                        
-                        const codeMatch = url.match(/[?&]code=([^&]+)/);
-                        const stateMatch = url.match(/[?&]state=([^&]+)/);
-                        
-                        if (!codeMatch) {
-                            showStatus('❌ URL inválida. Não foi possível encontrar o código.', 'error');
-                            return;
-                        }
-                        
-                        const code = decodeURIComponent(codeMatch[1]);
-                        const state = stateMatch ? decodeURIComponent(stateMatch[1]) : '';
-                        
-                        showStatus('🔄 Obtendo token...', 'loading');
-                        
-                        const response = await fetch('/auth/exchange', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ code, state })
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            showStatus('✅ Token obtido com sucesso! Redirecionando...', 'success');
-                            setTimeout(() => {
-                                window.location.href = '/dashboard';
-                            }, 1500);
-                        } else {
-                            showStatus('❌ Erro: ' + result.error, 'error');
-                        }
-                    };
-                </script>
-            </body>
-            </html>
-        `);
-    });
-});
-
-// Rota para gerar URL de login
-app.get('/auth/login-url', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     const { verifier, challenge } = generatePKCE();
     
@@ -260,23 +52,376 @@ app.get('/auth/login-url', (req, res) => {
         code_challenge_method: 'S256'
     });
     
-    const authUrl = `${config.authUrl}?${params.toString()}`;
-    res.json({ url: authUrl });
+    const loginUrl = `${config.authUrl}?${params.toString()}`;
+    
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Cartola Token Manager - Navegador Interno</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: #1a1a2e;
+                    height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+                
+                /* Cabeçalho do site */
+                .site-header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                }
+                .logo { font-size: 20px; font-weight: bold; }
+                .token-status {
+                    background: rgba(255,255,255,0.2);
+                    padding: 5px 12px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                }
+                
+                /* Barra de ferramentas do navegador */
+                .browser-toolbar {
+                    background: #2d2d3a;
+                    padding: 10px 15px;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    border-bottom: 1px solid #3d3d4a;
+                }
+                .nav-buttons {
+                    display: flex;
+                    gap: 5px;
+                }
+                .nav-btn {
+                    background: #3d3d4a;
+                    border: none;
+                    color: white;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 18px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                }
+                .nav-btn:hover { background: #4d4d5a; }
+                .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+                .url-bar {
+                    flex: 1;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                    background: #1a1a2e;
+                    border-radius: 30px;
+                    padding: 5px 15px;
+                }
+                .url-input {
+                    flex: 1;
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    font-size: 14px;
+                    padding: 8px 0;
+                    outline: none;
+                }
+                .go-btn {
+                    background: #4CAF50;
+                    border: none;
+                    color: white;
+                    width: 70px;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    cursor: pointer;
+                    font-size: 13px;
+                }
+                .go-btn:hover { background: #45a049; }
+                
+                /* Área do navegador (iframe) */
+                .browser-container {
+                    flex: 1;
+                    position: relative;
+                    background: white;
+                }
+                .browser-frame {
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                }
+                .loading-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.5);
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #4CAF50;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                /* Painel de token */
+                .token-panel {
+                    background: #2d2d3a;
+                    padding: 15px 20px;
+                    border-top: 1px solid #3d3d4a;
+                    display: none;
+                }
+                .token-panel.show { display: block; }
+                .token-title {
+                    color: #aaa;
+                    font-size: 12px;
+                    margin-bottom: 8px;
+                }
+                .token-value {
+                    background: #1a1a2e;
+                    color: #4CAF50;
+                    padding: 12px;
+                    border-radius: 8px;
+                    font-family: monospace;
+                    font-size: 12px;
+                    word-break: break-all;
+                    margin-bottom: 10px;
+                }
+                .dashboard-link {
+                    background: #2196F3;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    width: 100%;
+                    font-size: 14px;
+                }
+                
+                @media (max-width: 768px) {
+                    .browser-toolbar { flex-direction: column; }
+                    .url-bar { width: 100%; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="site-header">
+                <div class="logo">🏆 Cartola Token Manager</div>
+                <div class="token-status" id="tokenStatus">🔐 Aguardando login</div>
+            </div>
+            
+            <div class="browser-toolbar">
+                <div class="nav-buttons">
+                    <button class="nav-btn" id="backBtn" title="Voltar">◀</button>
+                    <button class="nav-btn" id="forwardBtn" title="Avançar">▶</button>
+                    <button class="nav-btn" id="refreshBtn" title="Atualizar">🔄</button>
+                </div>
+                <div class="url-bar">
+                    <input type="text" class="url-input" id="urlInput" placeholder="Digite uma URL ou faça login..." />
+                    <button class="go-btn" id="goBtn">Ir</button>
+                </div>
+            </div>
+            
+            <div class="browser-container">
+                <iframe class="browser-frame" id="browserFrame" src="${loginUrl}"></iframe>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <div class="token-panel" id="tokenPanel">
+                <div class="token-title">✅ Token obtido com sucesso!</div>
+                <div class="token-value" id="tokenValue"></div>
+                <button class="dashboard-link" id="dashboardBtn">📊 Ir para o Dashboard</button>
+            </div>
+            
+            <script>
+                const iframe = document.getElementById('browserFrame');
+                const urlInput = document.getElementById('urlInput');
+                const backBtn = document.getElementById('backBtn');
+                const forwardBtn = document.getElementById('forwardBtn');
+                const refreshBtn = document.getElementById('refreshBtn');
+                const goBtn = document.getElementById('goBtn');
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                const tokenPanel = document.getElementById('tokenPanel');
+                const tokenValue = document.getElementById('tokenValue');
+                const tokenStatus = document.getElementById('tokenStatus');
+                
+                let historyStack = [];
+                let historyIndex = -1;
+                let isProcessing = false;
+                
+                // Mostrar loading
+                function showLoading(show) {
+                    loadingOverlay.style.display = show ? 'flex' : 'none';
+                }
+                
+                // Atualizar URL na barra
+                function updateUrlBar() {
+                    try {
+                        const frameUrl = iframe.contentWindow.location.href;
+                        urlInput.value = frameUrl;
+                        
+                        // Verificar se é a página de callback
+                        if (frameUrl.includes('login-callback.html?code=') && !isProcessing) {
+                            isProcessing = true;
+                            const codeMatch = frameUrl.match(/[?&]code=([^&]+)/);
+                            if (codeMatch) {
+                                const code = decodeURIComponent(codeMatch[1]);
+                                const stateMatch = frameUrl.match(/[?&]state=([^&]+)/);
+                                const state = stateMatch ? decodeURIComponent(stateMatch[1]) : '';
+                                
+                                tokenStatus.innerHTML = '🔄 Obtendo token...';
+                                tokenStatus.style.background = 'rgba(255,193,7,0.3)';
+                                
+                                fetch('/auth/exchange', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ code, state })
+                                })
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.success) {
+                                        tokenStatus.innerHTML = '✅ Token obtido com sucesso!';
+                                        tokenStatus.style.background = 'rgba(76,175,80,0.3)';
+                                        tokenValue.innerHTML = result.token || 'Token armazenado na sessão';
+                                        tokenPanel.classList.add('show');
+                                    } else {
+                                        tokenStatus.innerHTML = '❌ Erro: ' + result.error;
+                                        tokenStatus.style.background = 'rgba(244,67,54,0.3)';
+                                        isProcessing = false;
+                                    }
+                                })
+                                .catch(error => {
+                                    tokenStatus.innerHTML = '❌ Erro: ' + error.message;
+                                    isProcessing = false;
+                                });
+                            }
+                        }
+                    } catch(e) {
+                        // Erro de cross-origin é normal
+                        console.log('Aguardando carregamento...');
+                    }
+                    showLoading(false);
+                }
+                
+                // Adicionar ao histórico
+                function addToHistory(url) {
+                    if (historyIndex < historyStack.length - 1) {
+                        historyStack = historyStack.slice(0, historyIndex + 1);
+                    }
+                    historyStack.push(url);
+                    historyIndex = historyStack.length - 1;
+                    updateNavButtons();
+                }
+                
+                function updateNavButtons() {
+                    backBtn.disabled = historyIndex <= 0;
+                    forwardBtn.disabled = historyIndex >= historyStack.length - 1;
+                }
+                
+                // Navegar para URL
+                function navigateTo(url) {
+                    if (!url) return;
+                    if (!url.startsWith('http')) {
+                        url = 'https://' + url;
+                    }
+                    iframe.src = url;
+                    addToHistory(url);
+                    urlInput.value = url;
+                    showLoading(true);
+                }
+                
+                // Eventos do iframe
+                iframe.addEventListener('load', () => {
+                    setTimeout(updateUrlBar, 500);
+                    showLoading(false);
+                });
+                
+                iframe.addEventListener('error', () => {
+                    showLoading(false);
+                });
+                
+                // Eventos dos botões
+                backBtn.onclick = () => {
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        iframe.src = historyStack[historyIndex];
+                        urlInput.value = historyStack[historyIndex];
+                        showLoading(true);
+                        updateNavButtons();
+                    }
+                };
+                
+                forwardBtn.onclick = () => {
+                    if (historyIndex < historyStack.length - 1) {
+                        historyIndex++;
+                        iframe.src = historyStack[historyIndex];
+                        urlInput.value = historyStack[historyIndex];
+                        showLoading(true);
+                        updateNavButtons();
+                    }
+                };
+                
+                refreshBtn.onclick = () => {
+                    iframe.src = iframe.src;
+                    showLoading(true);
+                };
+                
+                goBtn.onclick = () => {
+                    navigateTo(urlInput.value);
+                };
+                
+                urlInput.onkeypress = (e) => {
+                    if (e.key === 'Enter') navigateTo(urlInput.value);
+                };
+                
+                document.getElementById('dashboardBtn').onclick = () => {
+                    window.location.href = '/dashboard';
+                };
+                
+                // Monitorar mudanças de URL periodicamente
+                setInterval(updateUrlBar, 1000);
+                
+                // Adicionar URL inicial ao histórico
+                historyStack.push('${loginUrl}');
+                historyIndex = 0;
+                updateNavButtons();
+            </script>
+        </body>
+        </html>
+    `);
 });
 
-// Trocar código por token
+// Rota para trocar código por token
 app.post('/auth/exchange', async (req, res) => {
     const { code, state } = req.body;
     
-    console.log('Exchange request:', { code: code?.substring(0, 50), state, sessionState: req.session.oauthState });
+    console.log('Exchange request:', { code: code?.substring(0, 50), state });
     
     if (!code) {
         return res.status(400).json({ error: 'Código não encontrado' });
-    }
-    
-    // Se o state não bate, ainda tentamos (fluxo manual)
-    if (req.session.oauthState && state !== req.session.oauthState) {
-        console.warn('State mismatch, continuing anyway');
     }
     
     const codeVerifier = req.session.codeVerifier || '';
@@ -298,7 +443,6 @@ app.post('/auth/exchange', async (req, res) => {
         
         let tokens = await response.json();
         
-        // Se falhar, tenta sem code_verifier
         if (tokens.error && codeVerifier) {
             params.delete('code_verifier');
             response = await fetch(config.tokenUrl, {
@@ -315,10 +459,9 @@ app.post('/auth/exchange', async (req, res) => {
         
         req.session.accessToken = tokens.access_token;
         req.session.refreshToken = tokens.refresh_token;
-        req.session.idToken = tokens.id_token;
         req.session.tokenExpiry = Date.now() + (tokens.expires_in * 1000);
         
-        res.json({ success: true });
+        res.json({ success: true, token: tokens.access_token?.substring(0, 50) + '...' });
         
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -351,8 +494,6 @@ app.get('/dashboard', (req, res) => {
                 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
                 .stat-card { background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; }
                 .stat-value { font-size: 28px; font-weight: bold; color: #667eea; }
-                .token-status { padding: 12px; border-radius: 8px; margin-bottom: 20px; }
-                .token-valid { background: #d4edda; color: #155724; }
             </style>
         </head>
         <body>
@@ -364,7 +505,6 @@ app.get('/dashboard', (req, res) => {
             </div>
             <div class="container">
                 <div class="card">
-                    <div class="token-status token-valid">✅ Token válido</div>
                     <h2>📊 Seu Time</h2>
                     <div class="stats" id="stats">
                         <div class="stat-card"><div class="stat-value" id="timeName">-</div><div>Time</div></div>
@@ -391,15 +531,13 @@ app.get('/dashboard', (req, res) => {
                     pre.innerHTML = JSON.stringify(data, null, 2);
                 }
                 async function loadStats() {
-                    try {
-                        const response = await fetch('/api/cartola/auth/time/info');
-                        const data = await response.json();
-                        if (data.time) {
-                            document.getElementById('timeName').innerHTML = data.time.nome;
-                            document.getElementById('patrimonio').innerHTML = \`C\$ \${data.patrimonio}\`;
-                            document.getElementById('pontos').innerHTML = data.pontos;
-                        }
-                    } catch(e) { console.error(e); }
+                    const response = await fetch('/api/cartola/auth/time/info');
+                    const data = await response.json();
+                    if (data.time) {
+                        document.getElementById('timeName').innerHTML = data.time.nome;
+                        document.getElementById('patrimonio').innerHTML = \`C\$ \${data.patrimonio}\`;
+                        document.getElementById('pontos').innerHTML = data.pontos;
+                    }
                 }
                 async function logout() {
                     await fetch('/auth/logout');
